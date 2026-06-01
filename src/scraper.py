@@ -1,58 +1,85 @@
-from playwright.sync_api import sync_playwright
-from playwright_stealth import Stealth
+import requests
+import json
+import os
+from dotenv import load_dotenv
 from database import insert_job, init_db
-from llm import extract_job_data
-from bs4 import BeautifulSoup
-import time
-import random
 
-def human_delay():
-    time.sleep(random.uniform(1.0, 2.5))
+load_dotenv()
 
-def scrape_url(url: str):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page(
-            viewport={"width": 1280, "height": 800},
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
-        Stealth().apply_stealth_sync(page)
+RAPID_API_KEY = os.getenv("RAPID_API_KEY")
 
-        page.goto(url)
-        human_delay()
-
-        raw_html = page.content()
-        browser.close()
-
-        soup = BeautifulSoup(raw_html, "html.parser")
-        for element in soup(["script", "style", "noscript", "header", "footer", "nav"]):
-            element.extract()
-
-        cleaned_text = soup.get_text(separator=" ", strip=True)
-
-        return cleaned_text
-
-def scrape_job(url: str):
-    print(f"Scraping {url}...")
+# calls api to get jobs as json
+def fetch_jobs(query: str, location: str, num_pages: int = 1) -> list:
+    url = "https://jsearch.p.rapidapi.com/search"
     
-    raw_text = scrape_url(url)
-    job_data = extract_job_data(raw_text, url)
+    headers = {
+        "X-RapidAPI-Key": RAPID_API_KEY,
+        "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
+    }
+    
+    params = {
+        "query": query,
+        "location": location,
+        "num_pages": str(num_pages)
+    }
+    
+    response = requests.get(url, headers=headers, params=params)
+    
+    if response.status_code != 200:
+        print(f"API error {response.status_code}: {response.text[:100]}")
+        return []
+    
+    data = response.json()
+    return data.get("data", [])
 
-    if job_data:
+# turns json into a list to save it
+def save_jobs(jobs: list):
+    saved = 0
+    
+    for job in jobs:
+        benefits_list = job.get("job_benefits") or []
+        benefits_str = ", ".join(benefits_list)
+        
         insert_job(
-            title=job_data.get("title"),
-            company=job_data.get("company"),
-            location=job_data.get("location"),
-            job_type=job_data.get("job_type"),
-            salary=job_data.get("salary"),
-            benefits=job_data.get("benefits"),
-            description=job_data.get("description"),
-            source_url=job_data.get("source_url")
+            title=job.get("job_title"),
+            company=job.get("employer_name"),
+            location=job.get("job_location"),
+            job_type=job.get("job_employment_type"),
+            job_min_salary=job.get("job_min_salary"),
+            job_max_salary=job.get("job_max_salary"),
+            benefits=benefits_str,
+            description=job.get("job_description"),
+            source_url=job.get("job_apply_link")
         )
-        print(f"saved: {job_data.get('title')} at {job_data.get('company')}")
-    else:
-        print(f"failed to extract job data")
+        saved += 1
+    
+    return saved
+
+# loads profile to determine what type of role to query for
+def scrape_for_profile(profile_path: str):
+    with open(profile_path, "r") as f:
+        profile = json.load(f)
+    
+    target_roles = profile.get("target_roles", [])
+    location = profile.get("location", "United States")
+    
+    print(f"\nScraping jobs for {profile.get('name')}...")
+    print(f"Roles: {target_roles}")
+    print(f"Location: {location}\n")
+    
+    total_saved = 0
+    
+    for role in target_roles:
+        print(f"Searching: {role}...")
+        jobs = fetch_jobs(query=role, location=location)
+        print(f"Found {len(jobs)} results")
+        saved = save_jobs(jobs)
+        total_saved += saved
+        print(f"Saved {saved} jobs")
+    
+    print(f"\nDone. Total jobs saved: {total_saved}")
+
 
 if __name__ == "__main__":
     init_db()
-    scrape_job("https://job-boards.greenhouse.io/anthropic/jobs/5023394008")
+    scrape_for_profile("profiles/annie_weng.json")

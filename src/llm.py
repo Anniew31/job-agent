@@ -20,7 +20,7 @@ class JobDataSchema(BaseModel):
     description: str | None = Field(default=None)
 
 def extract_job_data(raw_text: str, source_url: str) -> dict | None:
-    prompt = f"Extract the job listing data from this webpage text:\n\n{raw_text[:5000]}"
+    prompt = f"Extract the job listing data from this webpage text:\n\n{raw_text[:4000]}"
 
     # Retry mechanism
     max_retries = 3

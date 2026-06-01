@@ -19,7 +19,8 @@ def init_db():
             company         TEXT NOT NULL,
             location        TEXT,
             job_type        TEXT,
-            salary          TEXT,
+            job_min_salary  INTEGER,
+            job_max_salary  INTEGER,
             benefits        TEXT,
             description     TEXT,
             source_url      TEXT UNIQUE,
@@ -33,15 +34,15 @@ def init_db():
     conn.commit()
     conn.close()
 
-def insert_job(title, company, location, job_type, salary, benefits, description, source_url):
+def insert_job(title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url):
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
         cursor.execute("""
-            INSERT INTO jobs (title, company, location, job_type, salary, benefits, description, source_url, scraped_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (title, company, location, job_type, salary, benefits, description, source_url, datetime.now().isoformat()))
+            INSERT INTO jobs (title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, scraped_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, datetime.now().isoformat()))
         conn.commit()
     except sqlite3.IntegrityError:
         pass

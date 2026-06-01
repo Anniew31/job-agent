@@ -53,4 +53,4 @@ def view_simple_list():
         print(f"{idx}. {job.get('title')} - {job.get('company')} ({job.get('location')})")
 
 if __name__ == "__main__":
-    view_simple_list()
+    view_as_json()
