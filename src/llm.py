@@ -36,7 +36,6 @@ def extract_job_data(raw_text: str, source_url: str) -> dict | None:
                 response_schema=JobDataSchema,
             ),
         )
-            
             data = json.loads(response.text)
             data["source_url"] = source_url
             return data
