@@ -1,3 +1,5 @@
 profiles/
 .env
 job_agent.db
+output/
+src/__pycache__/

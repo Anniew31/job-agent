@@ -23,11 +23,13 @@ def init_db():
             job_max_salary  INTEGER,
             benefits        TEXT,
             description     TEXT,
-            source_url      TEXT UNIQUE,
             status          TEXT DEFAULT 'pending',
             score           INTEGER,
             score_reasoning TEXT,
-            scraped_at      TEXT
+            source_url      TEXT UNIQUE,
+            scraped_at      TEXT,
+            resume_path     TEXT,
+            cover_letter_path TEXT
         )
     """)
 
@@ -37,7 +39,6 @@ def init_db():
 def insert_job(title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url):
     conn = get_connection()
     cursor = conn.cursor()
-
     try:
         cursor.execute("""
             INSERT INTO jobs (title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, scraped_at)
@@ -57,6 +58,7 @@ def fetch_jobs_by_status(status):
     conn.close()
     return rows
 
+# update job status to either reviewed or rejected
 def update_job_status(job_id, status):
     conn = get_connection()
     cursor = conn.cursor()
@@ -64,9 +66,21 @@ def update_job_status(job_id, status):
     conn.commit()
     conn.close()
 
+# update the score and reasoning given by ai 
 def update_job_score(job_id, score, reasoning):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE jobs SET score = ?, score_reasoning = ? WHERE id = ?", (score, reasoning, job_id))
+    conn.commit()
+    conn.close()
+
+# update to paths of generated resume and cover letter
+def update_job_output(job_id, resume_path, cover_letter_path):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE jobs SET resume_path = ?, cover_letter_path = ? WHERE id = ?",
+        (resume_path, cover_letter_path, job_id)
+    )
     conn.commit()
     conn.close()
