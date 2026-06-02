@@ -9,8 +9,13 @@ from database import fetch_jobs_by_status, update_job_output
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+class TailoredSection(BaseModel):
+    identifier: str = Field(description="Exact company or project name")
+    bullets: list[str] = Field(description="2-3 tailored bullet points")
+
 class TailoredResumeSchema(BaseModel):
-    bullets: list[str]
+    experiences: list[TailoredSection] = Field(description="List of tailored work experiences.")
+    projects: list[TailoredSection] = Field(description="List of tailored projects.")
 
 class CoverLetterSchema(BaseModel):
     cover_letter: str
@@ -26,15 +31,31 @@ def format_experience(experience: list) -> str:
         entries.append(entry)
     return "\n\n".join(entries)
 
+# formats projects nicely for prompting
+def format_projects(projects: list) -> str:
+    entries = []
+    for job in projects:
+        bullets = "\n".join([f"•{b}" for b in job["bullets"]])
+        entry = job["name"] + "\n" + bullets 
+        entries.append(entry)
+    return "\n\n".join(entries)
+
 # tailors resume to job description
-def tailor_resume(profile: dict, job: dict) -> list[str] | None:
+def tailor_resume(profile: dict, job: dict) -> dict | None:
     experience_str = format_experience(profile.get("experience", []))
+    project_str = format_projects(profile.get("projects", []))
+
+    exp_identifiers = [exp["company"] for exp in profile.get("experience", [])]
+    proj_identifiers = [proj["name"] for proj in profile.get("projects", [])]
     
     prompt = f"""
     You are a resume writing assistant helping a candidate tailor their resume bullets for a specific job.
 
     CANDIDATE'S EXISTING EXPERIENCE:
     {experience_str}
+
+    CANDIDATE'S PROJECTS:
+    {project_str}
 
     JOB THEY ARE APPLYING TO:
     Title: {job.get("title")}
@@ -43,12 +64,17 @@ def tailor_resume(profile: dict, job: dict) -> list[str] | None:
 
     INSTRUCTIONS:
     - Rewrite the candidate's existing bullets to mirror the language and keywords in the job description
-    - Do NOT invent new experience or skills the candidate does not have
+    - Do NOT invent new experience or skills
     - Do NOT change the core facts — only reframe how they are described
     - Use strong action verbs
     - Keep each bullet concise, one sentence
-    - Return 6 to 8 bullets total drawn from across all their experience
+    - Return 2 to 3 bullets for each experience
     - Prioritize bullets most relevant to this specific job
+
+    CRITICAL STRUCTURE CONSTRAINT:
+    In your JSON output response, you must use the EXACT identifier tags listed below for the 'identifier' fields:
+    - Allowed Experience Identifiers: {json.dumps(exp_identifiers)}
+    - Allowed Project Identifiers: {json.dumps(proj_identifiers)}
     """
     
     max_retries = 3
@@ -65,7 +91,7 @@ def tailor_resume(profile: dict, job: dict) -> list[str] | None:
                 ),
             )
             data = json.loads(response.text)
-            return data.get("bullets")
+            return data
         except Exception as e:
             if "429" in str(e) or "quota" in str(e).lower() or "SSL" in str(e):
                 print(f"⚠️ Rate limit hit, waiting {retry_delay}s (attempt {attempt + 1}/{max_retries})...")
@@ -81,6 +107,7 @@ def tailor_resume(profile: dict, job: dict) -> list[str] | None:
 # generates cover letter based on candidate's profile and job description
 def write_cover_letter(profile: dict, job: dict) -> str | None:
     experience_str = format_experience(profile.get("experience", []))
+    project_str = format_projects(profile.get("projects", []))
     
     prompt = f"""
     You are a cover letter writing assistant helping a candidate apply for a job.
@@ -91,6 +118,8 @@ def write_cover_letter(profile: dict, job: dict) -> str | None:
     Skills: {", ".join(profile["skills"])}
     Experience:
     {experience_str}
+    Projects:
+    {project_str}
 
     JOB THEY ARE APPLYING TO:
     Title: {job.get("title")}
@@ -137,7 +166,7 @@ def write_cover_letter(profile: dict, job: dict) -> str | None:
     return None
 
 # saves outupt into seperate files and returns file paths
-def save_output(job: dict, bullets: list[str], cover_letter: str) -> tuple[str, str]:
+def save_output(job: dict, tailored_data:dict, cover_letter: str) -> tuple[str, str]:
     company = job["company"].replace(" ", "_").replace("/", "_")
     title = job["title"].replace(" ", "_").replace("/", "_")
     
@@ -147,9 +176,19 @@ def save_output(job: dict, bullets: list[str], cover_letter: str) -> tuple[str, 
     resume_path = os.path.join(folder, "resume_bullets.txt")
     cover_letter_path = os.path.join(folder, "cover_letter.txt")
     
-    with open(resume_path, "w") as f:
-        f.write("\n".join([f"• {b}" for b in bullets]))
-    
+    with open(resume_path, "w", encoding="utf-8") as f:
+        f.write("=== TAILORED EXPERIENCES ===\n")
+        for exp in tailored_data.get("experiences", []):
+            f.write(f"\n[{exp['identifier']}]\n")
+            f.write("\n".join([f"• {b}" for b in exp.get("bullets", [])]))
+            f.write("\n")
+            
+        f.write("\n=== TAILORED PROJECTS ===\n")
+        for proj in tailored_data.get("projects", []):
+            f.write(f"\n[{proj['identifier']}]\n")
+            f.write("\n".join([f"• {b}" for b in proj.get("bullets", [])]))
+            f.write("\n")
+
     with open(cover_letter_path, "w") as f:
         f.write(cover_letter)
     
@@ -168,17 +207,14 @@ def run_tailor(profile_path: str):
         job = dict(job)
         print(f"Tailoring: {job['title']} at {job['company']}...")
         
-        bullets = tailor_resume(profile, job)
+        tailored_data = tailor_resume(profile, job)
         cover_letter = write_cover_letter(profile, job)
         
-        if not bullets or not cover_letter:
-            print(f"  ✗ skipping — generation failed")
+        if not tailored_data or not cover_letter:
+            print(f"skipping — generation failed")
             continue
         
-        resume_path, cover_letter_path = save_output(job, bullets, cover_letter)
+        resume_path, cover_letter_path = save_output(job, tailored_data, cover_letter)
         update_job_output(job["id"], resume_path, cover_letter_path)
         
         print(f"saved to output/{job['company']}_{job['title']}/")
-
-if __name__ == "__main__":
-    run_tailor("profiles/annie_weng.json")

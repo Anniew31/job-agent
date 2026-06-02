@@ -29,9 +29,19 @@ def format_experience(experience: list) -> str:
         entries.append(entry)
     return "\n\n".join(entries)
 
+# formats projects nicely for prompting
+def format_projects(projects: list) -> str:
+    entries = []
+    for job in projects:
+        bullets = "\n".join([f"•{b}" for b in job["bullets"]])
+        entry = job["name"] + "\n" + bullets 
+        entries.append(entry)
+    return "\n\n".join(entries)
+
 # make prompt using profile information
 def build_prompt(profile: dict, job: dict) -> str:
     experience_str = format_experience(profile.get("experience", []))
+    project_str = format_projects(profile.get("projects", []))
     
     return f"""
         You are a job application assistant scoring job fit for a candidate.
@@ -46,6 +56,8 @@ def build_prompt(profile: dict, job: dict) -> str:
         Deal breakers: {", ".join(profile["deal_breakers"]) if profile["deal_breakers"] else "None"}
         Experience:
         {experience_str}
+        Projects:
+        {project_str}
 
         JOB POSTING:
         Title: {job.get("title")}

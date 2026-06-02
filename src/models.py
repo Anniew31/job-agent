@@ -79,6 +79,17 @@ class WorkExperience(BaseModel):
     def _bullets(cls, v):
         return validate_bullets(v)
 
+class Project(BaseModel):
+    name: str
+    bullets: list[str]
+
+    @field_validator("name")
+    def _not_empty(cls, v):
+        return validate_not_empty(v)
+
+    @field_validator("bullets")
+    def _bullets(cls, v):
+        return validate_bullets(v)
 
 class Education(BaseModel):
     school: str
@@ -108,6 +119,7 @@ class Profile(BaseModel):
 
     education: list[Education]
     experience: list[WorkExperience] = []
+    projects: list[Project] = []
 
     skills: list[str]
     target_roles: list[str]

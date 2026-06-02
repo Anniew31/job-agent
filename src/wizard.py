@@ -156,6 +156,41 @@ def collect_experience():
             break
     return entries
 
+# asks user for their projects
+def collect_project():
+    print_section("PROJECTS")
+    projects = []
+
+    has_project = input("Do you have projects to add? (y/n): ").strip().lower()
+    if has_project != "y":
+        return projects
+
+    while True:
+        name = ask_field("Name", validator=validate_not_empty)
+        print("Enter bullet points one at a time. Empty line when done.")
+        bullets = []
+        while True:
+            bullet = input(f"Bullet {len(bullets)+1}: ").strip()
+            if not bullet:
+                if len(bullets) == 0:
+                    print("At least one bullet required")
+                    continue
+                break
+            if len(bullet) < 10:
+                print("Bullet must be at least 10 characters")
+                continue
+            bullets.append(bullet)
+
+        projects.append(Project(
+            name=name,
+            bullets=bullets
+        ))
+
+        more = input("\n  Add another project? (y/n): ").strip().lower()
+        if more != "y":
+            break
+    return projects
+
 
 def run():
     init_db()
@@ -168,6 +203,8 @@ def run():
     data.update(collect_skills())
     data["education"] = collect_education()
     data["experience"] = collect_experience()
+    data["projects"] = collect_project()
+    
     try:
         profile = Profile(**data)
     except Exception as e:
