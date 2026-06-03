@@ -22,9 +22,9 @@ class JobScoreSchema(BaseModel):
 def format_experience(experience: list) -> str:
     entries = []
     for job in experience:
-        end = job["end_date"] if job["end_date"] else "present"
-        header = job["company"] + " - "  + job["position"] + " (" + job["start_date"] + " - " + end + ")"
-        bullets = "\n".join([f"•{b}" for b in job["bullets"]])
+        end = job.get("end_date") if job.get("end_date") else "present"
+        header = job.get("company") + " - "  + job.get("position") + " (" + job.get("start_date") + " - " + end + ")"
+        bullets = "\n".join([f"•{b}" for b in job.get("bullets")])
         entry = header + "\n" + bullets 
         entries.append(entry)
     return "\n\n".join(entries)
@@ -33,8 +33,8 @@ def format_experience(experience: list) -> str:
 def format_projects(projects: list) -> str:
     entries = []
     for job in projects:
-        bullets = "\n".join([f"•{b}" for b in job["bullets"]])
-        entry = job["name"] + "\n" + bullets 
+        bullets = "\n".join([f"•{b}" for b in job.get("bullets")])
+        entry = job.get("name") + "\n" + bullets 
         entries.append(entry)
     return "\n\n".join(entries)
 
@@ -47,12 +47,12 @@ def build_prompt(profile: dict, job: dict) -> str:
         You are a job application assistant scoring job fit for a candidate.
 
         CANDIDATE PROFILE:
-        Positioning: {profile["positioning"]}
-        Target roles: {", ".join(profile["target_roles"])}
-        Role type: {profile["role_type"]}
-        Work preference: {profile["work_preference"]}
-        Minimum salary: {profile["salary_floor"]} {profile["salary_type"]}
-        Skills: {", ".join(profile["skills"])}
+        Positioning: {profile.get("positioning", [])}
+        Target roles: {", ".join(profile.get("target_roles", []))}
+        Role type: {profile.get("role_type",[])}
+        Work preference: {profile.get("work_preference", [])}
+        Minimum salary: {profile.get("salary_floor", [])} {profile.get("salary_type", [])}
+        Skills: {json.dumps(profile.get("skills", []))}
         Deal breakers: {", ".join(profile["deal_breakers"]) if profile["deal_breakers"] else "None"}
         Experience:
         {experience_str}
@@ -121,7 +121,7 @@ def run_scorer(profile_path: str):
     
     for job in pending_jobs:
         job = dict(job)
-        print(f"Scoring: {job['title']} at {job['company']}...")
+        print(f"Scoring: {job.get('title')} at {job.get('company')}...")
         
         prompt = build_prompt(profile, job)
         result = score_job(prompt)
@@ -135,15 +135,15 @@ def run_scorer(profile_path: str):
         deal_breaker = result.get("deal_breaker", False)
         deal_breaker_reason = result.get("deal_breaker_reason")
  
-        update_job_score(job["id"], score, reasoning)
+        update_job_score(job.get("id"), score, reasoning)
         if deal_breaker:
-            update_job_status(job["id"], "rejected")
+            update_job_status(job.get("id"), "rejected")
             print(deal_breaker_reason)
         elif score < SCORE_THRESHOLD: 
-            update_job_status(job["id"], "rejected")
+            update_job_status(job.get("id"), "rejected")
             print(f'{score} was too low')
         else: 
-            update_job_status(job["id"], "reviewed")
+            update_job_status(job.get("id"), "reviewed")
             print(f'AI reviewed it and found a fit of {score}/10. {reasoning}')
 
 if __name__ == "__main__":

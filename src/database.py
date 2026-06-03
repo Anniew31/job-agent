@@ -1,12 +1,18 @@
-import sqlite3
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
 from datetime import datetime
 
-DB_PATH = "job_agent.db"
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row 
-    return conn
+    return psycopg2.connect(
+        DATABASE_URL,
+        cursor_factory=RealDictCursor
+    )
 
 def init_db():
     conn = get_connection()
@@ -14,7 +20,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            id              SERIAL PRIMARY KEY,
             title           TEXT NOT NULL,
             company         TEXT NOT NULL,
             location        TEXT,
@@ -26,7 +32,7 @@ def init_db():
             status          TEXT DEFAULT 'pending',
             score           INTEGER,
             score_reasoning TEXT,
-            source_url      TEXT UNIQUE,
+            source_url      TEXT UNIQUE NOT NULL,
             scraped_at      TEXT,
             resume_path     TEXT,
             cover_letter_path TEXT
@@ -42,18 +48,17 @@ def insert_job(title, company, location, job_type, job_min_salary, job_max_salar
     try:
         cursor.execute("""
             INSERT INTO jobs (title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, scraped_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (source_url) DO NOTHING
         """, (title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, datetime.now().isoformat()))
         conn.commit()
-    except sqlite3.IntegrityError:
-        pass
     finally:
         conn.close()
 
 def fetch_jobs_by_status(status):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM jobs WHERE status = ?", (status,))
+    cursor.execute("SELECT * FROM jobs WHERE status = %s", (status,))
     rows = cursor.fetchall()
     conn.close()
     return rows
@@ -62,7 +67,7 @@ def fetch_jobs_by_status(status):
 def update_job_status(job_id, status):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE jobs SET status = ? WHERE id = ?", (status, job_id))
+    cursor.execute("UPDATE jobs SET status = %s WHERE id = %s", (status, job_id))
     conn.commit()
     conn.close()
 
@@ -70,7 +75,7 @@ def update_job_status(job_id, status):
 def update_job_score(job_id, score, reasoning):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE jobs SET score = ?, score_reasoning = ? WHERE id = ?", (score, reasoning, job_id))
+    cursor.execute("UPDATE jobs SET score = %s, score_reasoning = %s WHERE id = %s", (score, reasoning, job_id))
     conn.commit()
     conn.close()
 
@@ -79,7 +84,7 @@ def update_job_output(job_id, resume_path, cover_letter_path):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE jobs SET resume_path = ?, cover_letter_path = ? WHERE id = ?",
+        "UPDATE jobs SET resume_path = %s, cover_letter_path = %s WHERE id = %s",
         (resume_path, cover_letter_path, job_id)
     )
     conn.commit()

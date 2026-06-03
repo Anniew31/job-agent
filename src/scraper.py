@@ -72,7 +72,7 @@ def scrape_for_profile(profile_path: str):
     for role in target_roles:
         print(f"Searching: {role}...")
         jobs = fetch_jobs(query=role, location=location)
-        print(f"Found {len(jobs)} results")
+        print(f"Found {len(jobs)} results")  
         saved = save_jobs(jobs)
         total_saved += saved
         print(f"Saved {saved} jobs")
