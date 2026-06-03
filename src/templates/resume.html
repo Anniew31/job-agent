@@ -106,7 +106,7 @@
     <div class="contact-line">
         {% if phone %}<span>{{ phone }}</span><span class="sep">|</span>{% endif %}
         {% if email %}<a href="mailto:{{ email }}">{{ email }}</a><span class="sep">|</span>{% endif %}
-        {% for site in websites %}<a href="{{ site.url }}">{{ site.label }}</a>{% if not loop.last %}<span class="sep">|</span>{% endif %}{% endfor %}
+        {% for site in websites %}<a href="{{ site.url }}">{{ site.url }}</a>{% if not loop.last %}<span class="sep">|</span>{% endif %}{% endfor %}
         {% if location %}<span class="sep">|</span><span>{{ location }}</span>{% endif %}
     </div>
 </div>

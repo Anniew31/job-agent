@@ -187,16 +187,6 @@ def save_output(job: dict, tailored_data:dict, cover_letter: str, profile: dict)
     
     return resume_path, cover_letter_path
 
-# builds the contact info for profile
-def build_contact_string(profile: dict) -> str:
-    edu = profile.get("education", [{}])[0]
-    parts = [
-        profile.get("location", ""),
-        profile.get("email", ""),
-        f'GPA: {edu.get("gpa")}' if edu.get("gpa") else None
-    ]
-    return "  |  ".join([p for p in parts if p])
-
 
 # generates the pdf of the resume
 def generate_resume_pdf(profile: dict, tailored_data: dict, output_path: str):
@@ -237,7 +227,10 @@ def generate_resume_pdf(profile: dict, tailored_data: dict, output_path: str):
 
     html_str = template.render(
         name=profile["name"],
-        contact_info=build_contact_string(profile),
+        phone=profile.get("phone"),
+        email=profile.get("email"),
+        location=profile.get("location"),
+        websites=profile.get("websites", []),
         education=profile.get("education", []),
         experience=experiences,
         projects=projects,
