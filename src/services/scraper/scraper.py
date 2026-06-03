@@ -2,7 +2,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
-from database import insert_job, init_db
+from database.database import insert_job, init_db
 
 load_dotenv()
 
@@ -78,8 +78,3 @@ def scrape_for_profile(profile_path: str):
         print(f"Saved {saved} jobs")
     
     print(f"\nDone. Total jobs saved: {total_saved}")
-
-
-if __name__ == "__main__":
-    init_db()
-    scrape_for_profile("profiles/annie_weng.json")

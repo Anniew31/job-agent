@@ -1,26 +1,21 @@
+import os
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types 
 from pydantic import BaseModel, Field
-import os
-import json
 import time
+import json
 
 load_dotenv()
-
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-class JobDataSchema(BaseModel):
-    title: str | None = Field(default=None)
-    company: str | None = Field(default=None)
-    location: str | None = Field(default=None)
-    job_type: str | None = Field(default=None)
-    salary: str | None = Field(default=None)
-    benefits: str | None = Field(default=None)
-    description: str | None = Field(default=None)
-
-def extract_job_data(raw_text: str, source_url: str) -> dict | None:
-    prompt = f"Extract the job listing data from this webpage text:\n\n{raw_text[:4000]}"
+class JobScoreSchema(BaseModel):
+    score: int
+    reasoning: str
+    deal_breaker: bool | None = Field(default= False)
+    deal_breaker_reason: str | None = Field(default=None)
+# uses gemini to score the job based on profile
+def score_job(prompt: str) -> dict | None:
 
     # Retry mechanism
     max_retries = 3
@@ -33,11 +28,11 @@ def extract_job_data(raw_text: str, source_url: str) -> dict | None:
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=JobDataSchema,
+                response_schema=JobScoreSchema,
             ),
-        )
-            data = json.loads(response.text)
-            data["source_url"] = source_url
+            )
+            
+            data = json.loads(response.text or "{}")
             return data
 
         except Exception as e:
@@ -50,5 +45,5 @@ def extract_job_data(raw_text: str, source_url: str) -> dict | None:
                 print(f"LLM call failed with unexpected error: {e}")
                 return None
 
-    print(f"Failed to extract data for {source_url} after {max_retries} attempts due to rate limits.")
+    print(f"Failed to score after {max_retries} attempts due to rate limits.")
     return None
