@@ -8,6 +8,7 @@ from database import fetch_jobs_by_status, update_job_output
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 from typing import Optional
+from datetime import date
 
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -74,6 +75,7 @@ def tailor_resume(profile: dict, job: dict) -> dict | None:
     - Keep each bullet concise, one sentence
     - Return 2 to 3 bullets for each experience
     - Prioritize bullets most relevant to this specific job
+    - Make sure that total output is about 15 bullets
 
     CRITICAL STRUCTURE CONSTRAINT:
     In your JSON output response, you must use the EXACT identifier tags listed below for the 'identifier' fields:
@@ -134,12 +136,13 @@ def write_cover_letter(profile: dict, job: dict) -> str | None:
     INSTRUCTIONS:
     Write a page long cover letter structured exactly as follows:
     - Paragraph 1: Who the candidate is and why they are excited about this specific role and company
-    - Can be multiple paragraphs: Their most relevant experience and skills for this role, using specific examples
+    - Paragraph 2: Their most relevant experience and skills for this role, using specific examples
     - Paragraph 3: A confident closing expressing interest in next steps
     - Do not use generic filler phrases like "I am writing to express my interest"
     - Write in first person, professional but warm tone
     - Address it to the hiring team if no specific name is available
     - Do not include a subject line or date, just the letter body
+    - Make sure that it is about slighly more than three-fourths of a page
     """
     
     max_retries = 3
@@ -170,7 +173,7 @@ def write_cover_letter(profile: dict, job: dict) -> str | None:
     return None
 
 # saves outupt into seperate files and returns file paths
-def save_output(job: dict, tailored_data:dict, cover_letter: str, profile: dict) -> tuple[str, str]:
+def save_output(job: dict, tailored_data:dict, tailored_letter: str, profile: dict) -> tuple[str, str]:
     company = job["company"].replace(" ", "_").replace("/", "_")
     title = job["title"].replace(" ", "_").replace("/", "_")
     
@@ -180,13 +183,30 @@ def save_output(job: dict, tailored_data:dict, cover_letter: str, profile: dict)
     resume_path = os.path.join(folder, "resume.pdf")
     generate_resume_pdf(profile, tailored_data, resume_path)
     
-    cover_letter_path = os.path.join(folder, "cover_letter.txt")
-    
-    with open(cover_letter_path, "w", encoding="utf-8") as f:
-        f.write(cover_letter)
+    cover_letter_path = os.path.join(folder, "cover_letter.pdf")
+    generate_cover_pdf(profile, tailored_letter, cover_letter_path, job["company"], job["title"])
     
     return resume_path, cover_letter_path
 
+# generates the pdf of the cover letter
+def generate_cover_pdf(profile: dict, tailored_letter: str, output_path: str, company: str, role: str):
+
+    # load and render template
+    env = Environment(loader=FileSystemLoader("src/templates"))
+    template = env.get_template("cover_letter.html")
+
+    html_str = template.render(
+        name=profile["name"],
+        phone=profile.get("phone"),
+        email=profile.get("email"),
+        date=date.today().strftime("%B %d, %Y"),
+        company = company,
+        job_title = role,
+        cover_letter_body = tailored_letter
+    )
+
+    # convert rendered HTML to PDF
+    HTML(string=html_str).write_pdf(output_path)
 
 # generates the pdf of the resume
 def generate_resume_pdf(profile: dict, tailored_data: dict, output_path: str):
@@ -246,7 +266,7 @@ def run_tailor(profile_path: str):
     with open(profile_path, "r") as f:
         profile = json.load(f)
     
-    reviewed_jobs = fetch_jobs_by_status("reviewed")
+    reviewed_jobs = fetch_jobs_by_status("reviewed")[:1]
     print(f"\nTailoring for {len(reviewed_jobs)} reviewed jobs...\n")
     
     for job in reviewed_jobs:
@@ -254,13 +274,13 @@ def run_tailor(profile_path: str):
         print(f"Tailoring: {job['title']} at {job['company']}...")
         
         tailored_data = tailor_resume(profile, job)
-        cover_letter = write_cover_letter(profile, job)
+        tailored_letter = write_cover_letter(profile, job)
         
-        if not tailored_data or not cover_letter:
+        if not tailored_data or not tailored_letter:
             print(f"skipping — generation failed")
             continue
         
-        resume_path, cover_letter_path = save_output(job, tailored_data, cover_letter, profile)
+        resume_path, cover_letter_path = save_output(job, tailored_data, tailored_letter, profile)
         update_job_output(job["id"], resume_path, cover_letter_path)
         
         print(f"saved to output/{job['company']}_{job['title']}/")
