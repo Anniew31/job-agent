@@ -63,11 +63,29 @@ def print_section(title):
 # asks user for personal info
 def collect_personal_info():
     print_section("PERSONAL INFO")
+    name = ask_field("Full name", validator=validate_not_empty)
+    email = ask_field("Email", validator=validate_email)
+    phone = ask_field("Phone number (leave blank to skip)", optional=True)
+    location = ask_field("Location (city, state)", validator=validate_not_empty)
+    positioning = ask_field("Two sentence bio for cover letters", validator=validate_positioning)
+ 
+    # websites
+    websites = []
+    print("\nAdd websites (GitHub, portfolio, LinkedIn, etc). Empty label to stop.")
+    while True:
+        label = input("Website label (e.g. GitHub): ").strip()
+        if not label:
+            break
+        url = ask_field("URL (e.g. github.com/Anniew31)", validator=validate_not_empty)
+        websites.append({"label": label, "url": url})
+ 
     return {
-        "name": ask_field("Full name", validator=validate_not_empty),
-        "email": ask_field("Email", validator=validate_email),
-        "location": ask_field("Location (city, state)", validator=validate_not_empty),
-        "positioning": ask_field("Two sentence bio for cover letters", validator=validate_positioning),
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "location": location,
+        "positioning": positioning,
+        "websites": websites,
     }
 
 # asks user for job preferences
@@ -85,10 +103,27 @@ def collect_job_preferences():
 
 # asks user for skills
 def collect_skills():
-    print_section("SKILLS")
-    return {
-        "skills": ask_list("Skills you have")
-    }
+    print_section("TECHNICAL SKILLS")
+    print("Enter skills by category. Leave blank to skip a category.\n")
+ 
+    categories = ["Languages", "Frameworks/Libraries", "Developer Tools", "Other"]
+    skills = {}
+ 
+    for category in categories:
+        items = ask_list(f"{category}", optional=True)
+        if items:
+            skills[category] = items
+ 
+    # allow custom categories
+    while True:
+        custom = input("\nAdd a custom category? (leave blank to stop): ").strip()
+        if not custom:
+            break
+        items = ask_list(f"{custom}", optional=True)
+        if items:
+            skills[custom] = items
+ 
+    return {"skills": skills}
 
 # asks user for education history
 def collect_education():
@@ -98,6 +133,7 @@ def collect_education():
         school = ask_field("School", validator=validate_not_empty)
         degree = ask_field("Degree (e.g. Bachelor of Science)", validator=validate_not_empty)
         major = ask_field("Major", validator=validate_not_empty)
+        location = ask_field("Location (e.g. Ithaca, NY)", optional=True)
         gpa = ask_field("GPA (leave blank if prefer not to say)", optional=True, field_type = float, validator=validate_gpa)
         grad_year = ask_field("Graduation year", field_type = int, validator=validate_grad_year)
 
@@ -106,6 +142,7 @@ def collect_education():
             degree = degree,
             major = major,
             gpa = gpa,
+            location = location,
             grad_year = grad_year
         ))
 
@@ -126,6 +163,7 @@ def collect_experience():
     while True:
         company = ask_field("Company", validator=validate_not_empty)
         position = ask_field("Position", validator=validate_not_empty)
+        location = ask_field("Location (e.g. Ithaca, NY)", optional=True)
         start = ask_field("Start date", validator=validate_date_format)
         end = ask_field("End date (leave blank if current)", optional=True, validator=validate_date_format)
 
@@ -146,6 +184,7 @@ def collect_experience():
         entries.append(WorkExperience(
             company=company,
             position=position,
+            location=location,
             start_date=start,
             end_date=end,
             bullets=bullets
@@ -157,7 +196,7 @@ def collect_experience():
     return entries
 
 # asks user for their projects
-def collect_project():
+def collect_projects():
     print_section("PROJECTS")
     projects = []
 
@@ -167,6 +206,8 @@ def collect_project():
 
     while True:
         name = ask_field("Name", validator=validate_not_empty)
+        tech_stack = ask_field("Tech stack (e.g. Python, React, PostgreSQL — leave blank to skip)", optional=True)
+        date       = ask_field("Date (e.g. Sept. 2024 — leave blank to skip)", optional=True)
         print("Enter bullet points one at a time. Empty line when done.")
         bullets = []
         while True:
@@ -183,6 +224,8 @@ def collect_project():
 
         projects.append(Project(
             name=name,
+            tech_stack=tech_stack,
+            date=date,
             bullets=bullets
         ))
 
@@ -203,7 +246,7 @@ def run():
     data.update(collect_skills())
     data["education"] = collect_education()
     data["experience"] = collect_experience()
-    data["projects"] = collect_project()
+    data["projects"] = collect_projects()
     
     try:
         profile = Profile(**data)

@@ -5,6 +5,9 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from database import fetch_jobs_by_status, update_job_output
+from jinja2 import Environment, FileSystemLoader
+from weasyprint import HTML
+from typing import Optional
 
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -12,6 +15,7 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 class TailoredSection(BaseModel):
     identifier: str = Field(description="Exact company or project name")
     bullets: list[str] = Field(description="2-3 tailored bullet points")
+    tech_stack: Optional[str] = Field(default=None, description="For projects only — comma separated tech e.g. 'Python, React, PostgreSQL'")
 
 class TailoredResumeSchema(BaseModel):
     experiences: list[TailoredSection] = Field(description="List of tailored work experiences.")
@@ -166,33 +170,82 @@ def write_cover_letter(profile: dict, job: dict) -> str | None:
     return None
 
 # saves outupt into seperate files and returns file paths
-def save_output(job: dict, tailored_data:dict, cover_letter: str) -> tuple[str, str]:
+def save_output(job: dict, tailored_data:dict, cover_letter: str, profile: dict) -> tuple[str, str]:
     company = job["company"].replace(" ", "_").replace("/", "_")
     title = job["title"].replace(" ", "_").replace("/", "_")
     
     folder = os.path.join("output", f"{company}_{title}")
     os.makedirs(folder, exist_ok=True)
     
-    resume_path = os.path.join(folder, "resume_bullets.txt")
+    resume_path = os.path.join(folder, "resume.pdf")
+    generate_resume_pdf(profile, tailored_data, resume_path)
+    
     cover_letter_path = os.path.join(folder, "cover_letter.txt")
     
-    with open(resume_path, "w", encoding="utf-8") as f:
-        f.write("=== TAILORED EXPERIENCES ===\n")
-        for exp in tailored_data.get("experiences", []):
-            f.write(f"\n[{exp['identifier']}]\n")
-            f.write("\n".join([f"• {b}" for b in exp.get("bullets", [])]))
-            f.write("\n")
-            
-        f.write("\n=== TAILORED PROJECTS ===\n")
-        for proj in tailored_data.get("projects", []):
-            f.write(f"\n[{proj['identifier']}]\n")
-            f.write("\n".join([f"• {b}" for b in proj.get("bullets", [])]))
-            f.write("\n")
-
-    with open(cover_letter_path, "w") as f:
+    with open(cover_letter_path, "w", encoding="utf-8") as f:
         f.write(cover_letter)
     
     return resume_path, cover_letter_path
+
+# builds the contact info for profile
+def build_contact_string(profile: dict) -> str:
+    edu = profile.get("education", [{}])[0]
+    parts = [
+        profile.get("location", ""),
+        profile.get("email", ""),
+        f'GPA: {edu.get("gpa")}' if edu.get("gpa") else None
+    ]
+    return "  |  ".join([p for p in parts if p])
+
+
+# generates the pdf of the resume
+def generate_resume_pdf(profile: dict, tailored_data: dict, output_path: str):
+    exp_lookup = {
+        item["identifier"]: item["bullets"]
+        for item in tailored_data.get("experiences", [])
+    }
+
+    proj_lookup = {
+    item["identifier"]: {
+        "bullets": item["bullets"],
+        "tech_stack": item.get("tech_stack")
+    }
+    for item in tailored_data.get("projects", [])
+}
+
+    experiences = []
+    for exp in profile.get("experience", []):
+        experiences.append({
+            **exp,
+            "bullets": exp_lookup.get(exp["company"], exp.get("bullets", [])),
+            "end_date": exp.get("end_date") or "Present"
+        })
+
+    projects = []
+    for proj in profile.get("projects", []):
+        name = proj["name"]
+        looked_up = proj_lookup.get(name, {})
+        projects.append({
+            **proj,
+            "bullets": looked_up.get("bullets", proj.get("bullets", [])),
+            "tech_stack": looked_up.get("tech_stack", proj.get("tech_stack"))
+        })
+
+    # load and render template
+    env = Environment(loader=FileSystemLoader("src/templates"))
+    template = env.get_template("resume.html")
+
+    html_str = template.render(
+        name=profile["name"],
+        contact_info=build_contact_string(profile),
+        education=profile.get("education", []),
+        experience=experiences,
+        projects=projects,
+        skills=profile.get("skills", [])
+    )
+
+    # convert rendered HTML to PDF
+    HTML(string=html_str).write_pdf(output_path)
 
 # fetches reviewed jobs and tailors resume and generates cover letter
 def run_tailor(profile_path: str):
@@ -214,7 +267,10 @@ def run_tailor(profile_path: str):
             print(f"skipping — generation failed")
             continue
         
-        resume_path, cover_letter_path = save_output(job, tailored_data, cover_letter)
+        resume_path, cover_letter_path = save_output(job, tailored_data, cover_letter, profile)
         update_job_output(job["id"], resume_path, cover_letter_path)
         
         print(f"saved to output/{job['company']}_{job['title']}/")
+
+if __name__ == "__main__":
+   run_tailor("profiles/annie_weng.json")

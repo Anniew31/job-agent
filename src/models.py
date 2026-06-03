@@ -53,6 +53,14 @@ def validate_salary(v: int) -> int:
         raise ValueError("salary has to be positive")
     return v
 
+class Website(BaseModel):
+    label: str
+    url: str
+ 
+    @field_validator("label", "url")
+    def _not_empty(cls, v):
+        return validate_not_empty(v)
+ 
 
 class WorkExperience(BaseModel):
     company: str
@@ -81,6 +89,8 @@ class WorkExperience(BaseModel):
 
 class Project(BaseModel):
     name: str
+    tech_stack: Optional[str] = None
+    date: Optional[str] = None
     bullets: list[str]
 
     @field_validator("name")
@@ -96,6 +106,7 @@ class Education(BaseModel):
     degree: str
     major: str
     gpa: Optional[float] = None
+    location: Optional[str] = None
     grad_year: int
 
     @field_validator("school", "degree", "major")
@@ -115,13 +126,15 @@ class Profile(BaseModel):
     name: str
     email: str
     location: str
+    phone: Optional[str] = None
+    websites: list[Website] = []
     positioning: str
 
     education: list[Education]
     experience: list[WorkExperience] = []
     projects: list[Project] = []
 
-    skills: list[str]
+    skills: dict[str, list[str]]
     target_roles: list[str]
 
     role_type: Literal["internship", "fulltime", "either"]
@@ -140,7 +153,7 @@ class Profile(BaseModel):
     def _positioning(cls, v):
         return validate_positioning(v)
 
-    @field_validator("skills", "target_roles")
+    @field_validator("target_roles")
     def _list_not_empty(cls, v):
         return validate_list_not_empty(v)
 
