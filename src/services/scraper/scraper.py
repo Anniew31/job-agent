@@ -33,7 +33,7 @@ def fetch_jobs(query: str, location: str, num_pages: int = 1) -> list:
     return data.get("data", [])
 
 # turns json into a list to save it
-def save_jobs(jobs: list):
+def save_jobs(jobs: list, profile: Profile):
     saved = 0
     
     for job in jobs:
@@ -41,6 +41,7 @@ def save_jobs(jobs: list):
         benefits_str = ", ".join(benefits_list)
         
         insert_job(
+            profile_id=profile.id,
             title=job.get("job_title"),
             company=job.get("employer_name"),
             location=job.get("job_location"),
@@ -71,7 +72,7 @@ def scrape_for_profile(profile: Profile):
         print(f"Searching: {role}...")
         jobs = fetch_jobs(query=role, location=location)
         print(f"Found {len(jobs)} results")  
-        saved = save_jobs(jobs)
+        saved = save_jobs(jobs, profile)
         total_saved += saved
         print(f"Saved {saved} jobs")
     

@@ -6,7 +6,7 @@ from models import Profile
 
 # scores the jobs that haven't been scored
 def run_scorer(profile: Profile):
-    pending_jobs = fetch_jobs_by_status("pending")[:MAX_JOBS_PER_RUN]
+    pending_jobs = fetch_jobs_by_status(profile.id, "pending")[:MAX_JOBS_PER_RUN]
     print(f"\nScoring {len(pending_jobs)} pending jobs...\n")
     
     for job in pending_jobs:
@@ -25,13 +25,13 @@ def run_scorer(profile: Profile):
         deal_breaker = result.get("deal_breaker", False)
         deal_breaker_reason = result.get("deal_breaker_reason")
  
-        update_job_score(job.get("id"), score, reasoning)
+        update_job_score(profile.id, job.get("id"), score, reasoning)
         if deal_breaker:
-            update_job_status(job.get("id"), "rejected")
+            update_job_status(profile.id, job.get("id"), "rejected")
             print(deal_breaker_reason)
         elif score < SCORE_THRESHOLD: 
-            update_job_status(job.get("id"), "rejected")
+            update_job_status(profile.id, job.get("id"), "rejected")
             print(f'{score} was too low')
         else: 
-            update_job_status(job.get("id"), "reviewed")
+            update_job_status(profile.id, job.get("id"), "reviewed")
             print(f'AI reviewed it and found a fit of {score}/10. {reasoning}')

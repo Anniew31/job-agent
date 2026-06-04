@@ -123,6 +123,7 @@ class Education(BaseModel):
 
 
 class Profile(BaseModel):
+    id: Optional[int] = None
     name: str
     email: str
     location: str

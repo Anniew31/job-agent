@@ -3,6 +3,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from datetime import datetime
+import json
 
 load_dotenv()
 
@@ -19,8 +20,33 @@ def init_db():
     cursor = conn.cursor()
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS profiles (
+            id              SERIAL PRIMARY KEY,
+            email           TEXT UNIQUE NOT NULL,
+            password_hash   TEXT NOT NULL,
+            name            TEXT NOT NULL,
+            phone           TEXT,
+            location        TEXT,
+            websites        TEXT,
+            positioning     TEXT,
+            education       TEXT,
+            experience      TEXT,
+            projects        TEXT,
+            skills          TEXT,
+            target_roles    TEXT,
+            role_type       TEXT,
+            work_preference TEXT,
+            salary_floor    INTEGER,
+            salary_type     TEXT,
+            deal_breakers   TEXT,
+            created_at      TEXT
+        )
+    """)
+
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             id              SERIAL PRIMARY KEY,
+            profile_id      INTEGER REFERENCES profiles(id),
             title           TEXT NOT NULL,
             company         TEXT NOT NULL,
             location        TEXT,
@@ -32,80 +58,147 @@ def init_db():
             status          TEXT DEFAULT 'pending',
             score           INTEGER,
             score_reasoning TEXT,
-            source_url      TEXT UNIQUE NOT NULL,
+            source_url      TEXT NOT NULL,
             scraped_at      TEXT,
             resume_path     TEXT,
-            cover_letter_path TEXT
+            cover_letter_path TEXT,
+            CONSTRAINT unique_job_per_profile UNIQUE(profile_id, source_url)
         )
     """)
 
     conn.commit()
     conn.close()
 
+# creates a new profile
+def create_profile(email, password_hash, profile_data: dict) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO profiles (
+            email, password_hash, name, phone, location, websites,
+            positioning, education, experience, projects, skills,
+            target_roles, role_type, work_preference, salary_floor,
+            salary_type, deal_breakers, created_at
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        RETURNING *
+    """, (
+        email,
+        password_hash,
+        profile_data["name"],
+        profile_data.get("phone"),
+        profile_data.get("location"),
+        json.dumps(profile_data.get("websites", [])),
+        profile_data.get("positioning"),
+        json.dumps(profile_data.get("education", [])),
+        json.dumps(profile_data.get("experience", [])),
+        json.dumps(profile_data.get("projects", [])),
+        json.dumps(profile_data.get("skills", {})),
+        json.dumps(profile_data.get("target_roles", [])),
+        profile_data.get("role_type"),
+        profile_data.get("work_preference"),
+        profile_data.get("salary_floor"),
+        profile_data.get("salary_type"),
+        json.dumps(profile_data.get("deal_breakers", [])),
+        datetime.now().isoformat()
+    ))
+    conn.commit()
+    row = cursor.fetchone()
+    conn.close()
+    if row is None:
+        raise Exception("Profile creation failed — no row returned")
+    return dict(row)
+
+# gets profile with a matching email
+def get_profile_by_email(email: str) -> dict | None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM profiles WHERE email = %s", (email,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+# gets profile with matching id
+def get_profile_by_id(id: int) -> dict | None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM profiles WHERE id = %s", (id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row: 
+        return None
+    else:
+        profile = dict(row)
+        for field in ["websites", "education", "experience", "projects", "target_roles", "deal_breakers"]:
+            if profile.get(field):
+                profile[field] = json.loads(profile[field])
+        if profile.get("skills"):
+            profile["skills"] = json.loads(profile["skills"])
+        return profile
+
 # inserts jobs into databse
-def insert_job(title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url):
+def insert_job(profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url):
     conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO jobs (title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, scraped_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (source_url) DO NOTHING
-        """, (title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, datetime.now().isoformat()))
+            INSERT INTO jobs (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, scraped_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT ON CONSTRAINT unique_job_per_profile DO NOTHING
+        """, (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, datetime.now().isoformat()))
         conn.commit()
     finally:
         conn.close()
 
 # gets only jobs with certain status
-def fetch_jobs_by_status(status):
+def fetch_jobs_by_status(profile_id, status):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM jobs WHERE status = %s", (status,))
+    cursor.execute("SELECT * FROM jobs WHERE status = %s AND profile_id = %s", (status,profile_id,))
     rows = cursor.fetchall()
     conn.close()
-    return rows
+    return [dict(r) for r in rows]
 
 # update job status to either reviewed or rejected
-def update_job_status(job_id, status):
+def update_job_status(profile_id, job_id, status):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE jobs SET status = %s WHERE id = %s", (status, job_id))
+    cursor.execute("UPDATE jobs SET status = %s WHERE id = %s AND profile_id = %s", (status, job_id, profile_id,))
     conn.commit()
     conn.close()
 
 # update the score and reasoning given by ai 
-def update_job_score(job_id, score, reasoning):
+def update_job_score(profile_id, job_id, score, reasoning):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE jobs SET score = %s, score_reasoning = %s WHERE id = %s", (score, reasoning, job_id))
+    cursor.execute("UPDATE jobs SET score = %s, score_reasoning = %s WHERE id = %s AND profile_id = %s", (score, reasoning, job_id, profile_id,))
     conn.commit()
     conn.close()
 
 # update to paths of generated resume and cover letter
-def update_job_output(job_id, resume_path, cover_letter_path):
+def update_job_output(profile_id, job_id, resume_path, cover_letter_path):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE jobs SET resume_path = %s, cover_letter_path = %s WHERE id = %s",
-        (resume_path, cover_letter_path, job_id)
+        "UPDATE jobs SET resume_path = %s, cover_letter_path = %s WHERE id = %s AND profile_id = %s",
+        (resume_path, cover_letter_path, job_id, profile_id)
     )
     conn.commit()
     conn.close()
 
-# gets all jobs in databse
-def fetch_all_jobs():
+# gets all jobs in database for a profile
+def fetch_all_jobs(profile_id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM jobs ORDER BY scraped_at DESC")
+    cursor.execute("SELECT * FROM jobs WHERE profile_id = %s ORDER BY scraped_at DESC", (profile_id,))
     rows = cursor.fetchall()
     conn.close()
-    return rows
+    return [dict(r) for r in rows]
 
-# gets a job with a certain id
-def get_job(job_id: int):
+# gets a job with a certain id for a profile
+def get_job(job_id: int, profile_id: int):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM jobs WHERE id = %s", (job_id,))
+    cursor.execute("SELECT * FROM jobs WHERE id = %s AND profile_id = %s", (job_id, profile_id,))
     job = cursor.fetchone()
     conn.close()
     return job
