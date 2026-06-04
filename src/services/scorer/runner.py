@@ -1,14 +1,11 @@
-import json
 from database.database import fetch_jobs_by_status, update_job_score, update_job_status
 from services.config import MAX_JOBS_PER_RUN, SCORE_THRESHOLD
 from services.scorer.llm import score_job
 from services.scorer.prompt import build_prompt
+from models import Profile
 
 # scores the jobs that haven't been scored
-def run_scorer(profile_path: str):
-    with open(profile_path, "r") as f:
-        profile = json.load(f)
-    
+def run_scorer(profile: Profile):
     pending_jobs = fetch_jobs_by_status("pending")[:MAX_JOBS_PER_RUN]
     print(f"\nScoring {len(pending_jobs)} pending jobs...\n")
     

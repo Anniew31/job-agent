@@ -1,22 +1,23 @@
 from services.formatter import format_experience, format_projects
 import json
+from models import Profile
 
 # make prompt using profile information
-def build_prompt(profile: dict, job: dict) -> str:
-    experience_str = format_experience(profile.get("experience", []))
-    project_str = format_projects(profile.get("projects", []))
+def build_prompt(profile: Profile, job: dict) -> str:
+    experience_str = format_experience(profile.experience)
+    project_str = format_projects(profile.projects)
     
     return f"""
         You are a job application assistant scoring job fit for a candidate.
 
         CANDIDATE PROFILE:
-        Positioning: {profile.get("positioning", [])}
-        Target roles: {", ".join(profile.get("target_roles", []))}
-        Role type: {profile.get("role_type",[])}
-        Work preference: {profile.get("work_preference", [])}
-        Minimum salary: {profile.get("salary_floor", [])} {profile.get("salary_type", [])}
-        Skills: {json.dumps(profile.get("skills", []))}
-        Deal breakers: {", ".join(profile["deal_breakers"]) if profile["deal_breakers"] else "None"}
+        Positioning: {profile.positioning}
+        Target roles: {", ".join(profile.target_roles)}
+        Role type: {profile.role_type}
+        Work preference: {profile.work_preference}
+        Minimum salary: {profile.salary_floor} {profile.salary_type}
+        Skills: {json.dumps(profile.skills)}
+        Deal breakers: {", ".join(profile.deal_breakers) if profile.deal_breakers else "None"}
         Experience:
         {experience_str}
         Projects:

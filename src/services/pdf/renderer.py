@@ -1,9 +1,10 @@
 import os
 from cover_letter import generate_cover_pdf
 from resume import generate_resume_pdf
+from models import Profile
 
 # saves outupt into seperate files and returns file paths
-def save_output(job: dict, tailored_data:dict, tailored_letter: str, profile: dict) -> tuple[str, str]:
+def save_output(job: dict, tailored_data:dict, tailored_letter: str, profile: Profile) -> tuple[str, str]:
     company = job["company"].replace(" ", "_").replace("/", "_")
     title = job["title"].replace(" ", "_").replace("/", "_")
     

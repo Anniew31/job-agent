@@ -1,18 +1,19 @@
 from datetime import date
 from weasyprint import HTML
 from jinja2 import Environment, FileSystemLoader
+from models import Profile
 
 # generates the pdf of the cover letter
-def generate_cover_pdf(profile: dict, tailored_letter: str, output_path: str, company: str, role: str):
+def generate_cover_pdf(profile: Profile, tailored_letter: str, output_path: str, company: str, role: str):
 
     # load and render template
     env = Environment(loader=FileSystemLoader("src/templates"))
     template = env.get_template("cover_letter.html")
 
     html_str = template.render(
-        name=profile["name"],
-        phone=profile.get("phone"),
-        email=profile.get("email"),
+        name=profile.name,
+        phone=profile.phone,
+        email=profile.email,
         date=date.today().strftime("%B %d, %Y"),
         company = company,
         job_title = role,
@@ -23,7 +24,8 @@ def generate_cover_pdf(profile: dict, tailored_letter: str, output_path: str, co
     HTML(string=html_str).write_pdf(output_path)
 
 # generates the pdf of the resume
-def generate_resume_pdf(profile: dict, tailored_data: dict, output_path: str):
+def generate_resume_pdf(profile_model: Profile, tailored_data: dict, output_path: str):
+    profile = profile_model.model_dump()
     exp_lookup = {
         item["identifier"]: item["bullets"]
         for item in tailored_data.get("experiences", [])
@@ -38,7 +40,7 @@ def generate_resume_pdf(profile: dict, tailored_data: dict, output_path: str):
 }
 
     experiences = []
-    for exp in profile.get("experience", []):
+    for exp in profile.get("experiences", []):
         experiences.append({
             **exp,
             "bullets": exp_lookup.get(exp["company"], exp.get("bullets", [])),

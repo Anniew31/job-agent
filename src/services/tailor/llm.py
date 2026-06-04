@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import json
 from services.formatter import format_experience, format_projects
+from models import Profile
 
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -24,12 +25,12 @@ class CoverLetterSchema(BaseModel):
 
 
 # tailors resume to job description
-def tailor_resume(profile: dict, job: dict) -> dict | None:
-    experience_str = format_experience(profile.get("experience", []))
-    project_str = format_projects(profile.get("projects", []))
+def tailor_resume(profile: Profile, job: dict) -> dict | None:
+    experience_str = format_experience(profile.experience)
+    project_str = format_projects(profile.projects)
 
-    exp_identifiers = [exp["company"] for exp in profile.get("experience", [])]
-    proj_identifiers = [proj["name"] for proj in profile.get("projects", [])]
+    exp_identifiers = [exp.company for exp in profile.experience]
+    proj_identifiers = [proj.name for proj in profile.projects]
     
     prompt = f"""
     You are a resume writing assistant helping a candidate tailor their resume bullets for a specific job.
@@ -89,17 +90,17 @@ def tailor_resume(profile: dict, job: dict) -> dict | None:
     return None
 
 # generates cover letter based on candidate's profile and job description
-def write_cover_letter(profile: dict, job: dict) -> str | None:
-    experience_str = format_experience(profile.get("experience", []))
-    project_str = format_projects(profile.get("projects", []))
+def write_cover_letter(profile: Profile, job: dict) -> str | None:
+    experience_str = format_experience(profile.experience)
+    project_str = format_projects(profile.projects)
     
     prompt = f"""
     You are a cover letter writing assistant helping a candidate apply for a job.
 
     CANDIDATE PROFILE:
-    Name: {profile["name"]}
-    Positioning: {profile["positioning"]}
-    Skills: {", ".join(profile["skills"])}
+    Name: {profile.name}
+    Positioning: {profile.positioning}
+    Skills: {", ".join(profile.skills)}
     Experience:
     {experience_str}
     Projects:

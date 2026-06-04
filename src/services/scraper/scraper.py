@@ -1,8 +1,8 @@
 import requests
-import json
 import os
 from dotenv import load_dotenv
 from database.database import insert_job, init_db
+from models import Profile
 
 load_dotenv()
 
@@ -56,14 +56,12 @@ def save_jobs(jobs: list):
     return saved
 
 # loads profile to determine what type of role to query for
-def scrape_for_profile(profile_path: str):
-    with open(profile_path, "r") as f:
-        profile = json.load(f)
+def scrape_for_profile(profile: Profile):
     
-    target_roles = profile.get("target_roles", [])
-    location = profile.get("location", "United States")
+    target_roles = profile.target_roles
+    location = profile.location
     
-    print(f"\nScraping jobs for {profile.get('name')}...")
+    print(f"\nScraping jobs for {profile.name}...")
     print(f"Roles: {target_roles}")
     print(f"Location: {location}\n")
     

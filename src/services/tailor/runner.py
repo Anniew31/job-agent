@@ -1,13 +1,11 @@
 import json
 from database.database import fetch_jobs_by_status, update_job_output
 from llm import tailor_resume, write_cover_letter
+from models import Profile
 from services.pdf.renderer import save_output
 
 # fetches reviewed jobs and tailors resume and generates cover letter
-def run_tailor(profile_path: str):
-    
-    with open(profile_path, "r") as f:
-        profile = json.load(f)
+def run_tailor(profile: Profile):
     
     reviewed_jobs = fetch_jobs_by_status("reviewed")[:1]
     print(f"\nTailoring for {len(reviewed_jobs)} reviewed jobs...\n")
