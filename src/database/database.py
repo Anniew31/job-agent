@@ -42,6 +42,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+# inserts jobs into databse
 def insert_job(title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url):
     conn = get_connection()
     cursor = conn.cursor()
@@ -55,6 +56,7 @@ def insert_job(title, company, location, job_type, job_min_salary, job_max_salar
     finally:
         conn.close()
 
+# gets only jobs with certain status
 def fetch_jobs_by_status(status):
     conn = get_connection()
     cursor = conn.cursor()
@@ -89,3 +91,21 @@ def update_job_output(job_id, resume_path, cover_letter_path):
     )
     conn.commit()
     conn.close()
+
+# gets all jobs in databse
+def fetch_all_jobs():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM jobs ORDER BY scraped_at DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+# gets a job with a certain id
+def get_job(job_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM jobs WHERE id = %s", (job_id,))
+    job = cursor.fetchone()
+    conn.close()
+    return job

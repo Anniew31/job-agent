@@ -1,6 +1,6 @@
 import os
-from cover_letter import generate_cover_pdf
-from resume import generate_resume_pdf
+from services.pdf.cover_letter import generate_cover_pdf
+from services.pdf.resume import generate_resume_pdf
 from models import Profile
 
 # saves outupt into seperate files and returns file paths

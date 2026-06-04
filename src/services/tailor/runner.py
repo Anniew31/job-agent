@@ -1,6 +1,5 @@
-import json
 from database.database import fetch_jobs_by_status, update_job_output
-from llm import tailor_resume, write_cover_letter
+from services.tailor.llm import tailor_resume, write_cover_letter
 from models import Profile
 from services.pdf.renderer import save_output
 
