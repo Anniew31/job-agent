@@ -5,8 +5,8 @@ from google.genai import types
 from pydantic import BaseModel, Field
 from typing import Optional
 import json
-from backend.src.services.formatter import format_experience, format_projects
-from backend.src.models import Profile
+from src.services.formatter import format_experience, format_projects
+from src.models import Profile
 
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))

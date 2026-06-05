@@ -4,7 +4,7 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from datetime import datetime
 import json
-from backend.src.models import Profile
+from src.models import Profile
 
 load_dotenv()
 

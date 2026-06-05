@@ -1,7 +1,7 @@
-from backend.src.database.database import fetch_jobs_by_status, update_job_output
-from backend.src.services.tailor.llm import tailor_resume, write_cover_letter
-from backend.src.services.pdf.renderer import save_output
-from backend.src.database.database import get_profile_by_id
+from src.database.database import fetch_jobs_by_status, update_job_output
+from src.services.tailor.llm import tailor_resume, write_cover_letter
+from src.services.pdf.renderer import save_output
+from src.database.database import get_profile_by_id
 
 # fetches reviewed jobs and tailors resume and generates cover letter
 def run_tailor(profile_id: int):

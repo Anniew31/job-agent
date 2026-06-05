@@ -4,8 +4,8 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
-from backend.src.database.database import get_profile_by_email
-from backend.src.models import Profile
+from src.database.database import get_profile_by_email
+from src.models import Profile
 from fastapi.security import OAuth2PasswordBearer
 
 load_dotenv()
