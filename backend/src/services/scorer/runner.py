@@ -1,7 +1,7 @@
-from database.database import *
-from services.config import MAX_JOBS_PER_RUN, SCORE_THRESHOLD
-from services.scorer.llm import score_job
-from services.scorer.prompt import build_prompt
+from backend.src.database.database import *
+from backend.src.services.config import MAX_JOBS_PER_RUN, SCORE_THRESHOLD
+from backend.src.services.scorer.llm import score_job
+from backend.src.services.scorer.prompt import build_prompt
 
 # scores the jobs that haven't been scored
 def run_scorer(profile_id: int):

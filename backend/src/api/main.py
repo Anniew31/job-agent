@@ -1,13 +1,13 @@
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from services.scraper.scraper import scrape_for_profile 
-from services.tailor.runner import run_tailor
-from services.scorer.runner import run_scorer
-from models import Profile
-from database.database import *
-from services.pipeline import full_pipeline
+from backend.src.services.scraper.scraper import scrape_for_profile 
+from backend.src.services.tailor.runner import run_tailor
+from backend.src.services.scorer.runner import run_scorer
+from backend.src.models import Profile
+from backend.src.database.database import *
+from backend.src.services.pipeline import full_pipeline
 from pydantic import BaseModel
-from services.auth import *
+from backend.src.services.auth import *
 
 class RegisterRequest(BaseModel):
     email: str

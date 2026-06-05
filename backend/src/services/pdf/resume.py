@@ -1,6 +1,6 @@
 from weasyprint import HTML
 from jinja2 import Environment, FileSystemLoader
-from models import Profile
+from backend.src.models import Profile
 
 def generate_resume_pdf(profile: Profile,tailored_data: dict,output_path: str):
     exp_lookup = {

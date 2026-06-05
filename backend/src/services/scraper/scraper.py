@@ -1,7 +1,7 @@
 import requests
 import os
 from dotenv import load_dotenv
-from database.database import insert_job, get_profile_by_id
+from backend.src.database.database import insert_job, get_profile_by_id
 
 load_dotenv()
 

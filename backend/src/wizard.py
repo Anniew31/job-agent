@@ -1,7 +1,7 @@
-from models import *
+from backend.src.models import *
 import os
 import json
-from database.database import init_db
+from backend.src.database.database import init_db
 
 # asks user for input for a field
 def ask_field(question, validator=None, optional=False, field_type=str):

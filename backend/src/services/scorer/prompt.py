@@ -1,6 +1,6 @@
-from services.formatter import format_experience, format_projects
+from backend.src.services.formatter import format_experience, format_projects
 import json
-from models import Profile
+from backend.src.models import Profile
 
 # make prompt using profile information
 def build_prompt(profile: Profile, job: dict) -> str:
