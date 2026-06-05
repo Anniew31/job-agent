@@ -44,7 +44,7 @@ def decode_token(token: str) -> dict:
         )
 
 # reads token from header and returns profile dict
-def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+def get_current_user(token: str = Depends(oauth2_scheme)) -> Profile:
     payload = decode_token(token)
     email = payload.get("sub")
     profile = get_profile_by_email(email or "")
@@ -53,6 +53,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
         )
-    return profile
+    return Profile(**profile)
 
 

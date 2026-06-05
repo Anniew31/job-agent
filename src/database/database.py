@@ -4,6 +4,7 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from datetime import datetime
 import json
+from models import Profile
 
 load_dotenv()
 
@@ -39,14 +40,14 @@ def init_db():
             salary_floor    INTEGER,
             salary_type     TEXT,
             deal_breakers   TEXT,
-            created_at      TEXT
+            created_at      TIMESTAMP
         )
     """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             id              SERIAL PRIMARY KEY,
-            profile_id      INTEGER REFERENCES profiles(id),
+            profile_id      INTEGER REFERENCES profiles(id) ON DELETE CASCADE,
             title           TEXT NOT NULL,
             company         TEXT NOT NULL,
             location        TEXT,
@@ -59,7 +60,7 @@ def init_db():
             score           INTEGER,
             score_reasoning TEXT,
             source_url      TEXT NOT NULL,
-            scraped_at      TEXT,
+            scraped_at      TIMESTAMP,
             resume_path     TEXT,
             cover_letter_path TEXT,
             CONSTRAINT unique_job_per_profile UNIQUE(profile_id, source_url)
@@ -70,7 +71,7 @@ def init_db():
     conn.close()
 
 # creates a new profile
-def create_profile(email, password_hash, profile_data: dict) -> dict:
+def create_profile(email, password_hash, profile_data: Profile) -> Profile:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -84,29 +85,35 @@ def create_profile(email, password_hash, profile_data: dict) -> dict:
     """, (
         email,
         password_hash,
-        profile_data["name"],
-        profile_data.get("phone"),
-        profile_data.get("location"),
-        json.dumps(profile_data.get("websites", [])),
-        profile_data.get("positioning"),
-        json.dumps(profile_data.get("education", [])),
-        json.dumps(profile_data.get("experience", [])),
-        json.dumps(profile_data.get("projects", [])),
-        json.dumps(profile_data.get("skills", {})),
-        json.dumps(profile_data.get("target_roles", [])),
-        profile_data.get("role_type"),
-        profile_data.get("work_preference"),
-        profile_data.get("salary_floor"),
-        profile_data.get("salary_type"),
-        json.dumps(profile_data.get("deal_breakers", [])),
-        datetime.now().isoformat()
+        profile_data.name,
+        profile_data.phone,
+        profile_data.location,
+        json.dumps([p.model_dump() for p in profile_data.projects]),
+        profile_data.positioning,
+        json.dumps([e.model_dump() for e in profile_data.education]),
+        json.dumps([e.model_dump() for e in profile_data.experience]),
+        json.dumps([p.model_dump() for p in profile_data.projects]),
+        json.dumps(profile_data.skills),
+        json.dumps(profile_data.target_roles),
+        profile_data.role_type,
+        profile_data.work_preference,
+        profile_data.salary_floor,
+        profile_data.salary_type,
+        json.dumps(profile_data.deal_breakers),
+        datetime.now()
     ))
     conn.commit()
     row = cursor.fetchone()
     conn.close()
     if row is None:
         raise Exception("Profile creation failed — no row returned")
-    return dict(row)
+    profile = dict(row)
+    for field in ["websites", "education", "experience", "projects", "target_roles", "deal_breakers"]:
+        if profile.get(field):
+            profile[field] = json.loads(profile[field])
+    if profile.get("skills"):
+        profile["skills"] = json.loads(profile["skills"])
+    return Profile(**profile)
 
 # gets profile with a matching email
 def get_profile_by_email(email: str) -> dict | None:
@@ -118,7 +125,7 @@ def get_profile_by_email(email: str) -> dict | None:
     return dict(row) if row else None
 
 # gets profile with matching id
-def get_profile_by_id(id: int) -> dict | None:
+def get_profile_by_id(id: int) -> Profile | None:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM profiles WHERE id = %s", (id,))
@@ -133,7 +140,7 @@ def get_profile_by_id(id: int) -> dict | None:
                 profile[field] = json.loads(profile[field])
         if profile.get("skills"):
             profile["skills"] = json.loads(profile["skills"])
-        return profile
+        return Profile(**profile)
 
 # inserts jobs into databse
 def insert_job(profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url):
@@ -144,7 +151,7 @@ def insert_job(profile_id, title, company, location, job_type, job_min_salary, j
             INSERT INTO jobs (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, scraped_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT ON CONSTRAINT unique_job_per_profile DO NOTHING
-        """, (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, datetime.now().isoformat()))
+        """, (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, datetime.now()))
         conn.commit()
     finally:
         conn.close()
@@ -201,4 +208,4 @@ def get_job(job_id: int, profile_id: int):
     cursor.execute("SELECT * FROM jobs WHERE id = %s AND profile_id = %s", (job_id, profile_id,))
     job = cursor.fetchone()
     conn.close()
-    return job
+    return dict(job) if job else None

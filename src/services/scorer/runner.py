@@ -1,11 +1,16 @@
-from database.database import fetch_jobs_by_status, update_job_score, update_job_status
+from database.database import *
 from services.config import MAX_JOBS_PER_RUN, SCORE_THRESHOLD
 from services.scorer.llm import score_job
 from services.scorer.prompt import build_prompt
-from models import Profile
 
 # scores the jobs that haven't been scored
-def run_scorer(profile: Profile):
+def run_scorer(profile_id: int):
+    profile = get_profile_by_id(profile_id)
+
+    if profile is None:
+        print(f"No profile found for id {profile_id}")
+        return 0
+    
     pending_jobs = fetch_jobs_by_status(profile.id, "pending")[:MAX_JOBS_PER_RUN]
     print(f"\nScoring {len(pending_jobs)} pending jobs...\n")
     

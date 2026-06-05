@@ -1,12 +1,17 @@
 from database.database import fetch_jobs_by_status, update_job_output
 from services.tailor.llm import tailor_resume, write_cover_letter
-from models import Profile
 from services.pdf.renderer import save_output
+from database.database import get_profile_by_id
 
 # fetches reviewed jobs and tailors resume and generates cover letter
-def run_tailor(profile: Profile):
+def run_tailor(profile_id: int):
+    profile = get_profile_by_id(profile_id)
+
+    if profile is None:
+        print(f"No profile found for id {profile_id}")
+        return 0
     
-    reviewed_jobs = fetch_jobs_by_status(profile.id, "reviewed")[:1]
+    reviewed_jobs = fetch_jobs_by_status(profile_id, "reviewed")[:1]
     print(f"\nTailoring for {len(reviewed_jobs)} reviewed jobs...\n")
     
     for job in reviewed_jobs:
@@ -21,6 +26,6 @@ def run_tailor(profile: Profile):
             continue
         
         resume_path, cover_letter_path = save_output(job, tailored_data, tailored_letter, profile)
-        update_job_output(profile.id, job["id"], resume_path, cover_letter_path)
+        update_job_output(profile_id, job["id"], resume_path, cover_letter_path)
         
         print(f"saved to output/{job['company']}_{job['title']}/")
