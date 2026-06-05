@@ -8,13 +8,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <nav style={{ padding: 20, display: "flex", gap: 20 }}>
-          <Link href="/">Home</Link>
-          <Link href="/login">Login</Link>
-          <Link href="/dashboard">Dashboard</Link>
-        </nav>
-
-        <main style={{ padding: 20 }}>{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );
