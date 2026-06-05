@@ -39,5 +39,5 @@ def get_job_by_id(job_id: int):
 
 @app.post("/run")
 def run_pipeline(profile: Profile, background_tasks: BackgroundTasks):
-    background_tasks.add_task(full_pipeline, profile)
+    background_tasks.add_task(fu_pipeline, profile)
     return {"status": "pipeline started"}
