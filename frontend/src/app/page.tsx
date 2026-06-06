@@ -1,34 +1,10 @@
 import Link from "next/link";
-
-const BRAND = {
-  bg: "#F7F9FC",
-  surface: "#FFFFFF",
-  surfaceAlt: "#EFF4FB",
-  border: "#DDE6F0",
-  borderLight: "#EBF1F8",
-  navy: "#1B2B4B",
-  navyMid: "#2E4370",
-  blue: "#7995cf",
-  blueMid: "#5A87E0",
-  blueLight: "#EAF0FC",
-  bluePale: "#F0F5FD",
-  muted: "#6B7A99",
-  faint: "#9AAAC4",
-  purple: "#7C3AED",
-  amber: "#E8914A",
-  amberBg: "#FEF4EB",
-  amberBorder: "#F9D9B8",
-  green: "#2D7A56",
-  greenBg: "#EAF5EF",
-  red: "#B83232",
-  redBg: "#FDEAEA",
-};
+import { BRAND } from "../lib/theme";
 
 export default function Home() {
   return (
     <main style={{ minHeight: "100vh", background: BRAND.bg, fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
-      {/* ── nav ── */}
       <nav style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "1.1rem 2.5rem", borderBottom: `1px solid ${BRAND.border}`,
@@ -110,12 +86,11 @@ export default function Home() {
           { icon: "📊", title: "Application dashboard", body: "Track status, scores, and stats. Edit applications and monitor your pipeline.", iconBg: "#FFF7ED" },
         ].map((f) => (
           <div key={f.title} style={{
-            background: BRAND.surface, // Clean white card background
+            background: BRAND.surface, 
             borderRadius: "12px", padding: "1.25rem",
             border: `1px solid ${BRAND.border}`,
-            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)", // Subtle shadow so white-on-gray pops
+            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)", 
           }}>
-            {/* Small colored icon badge wrapper */}
             <div style={{ 
               width: "36px", 
               height: "36px", 
