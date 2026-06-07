@@ -1,5 +1,4 @@
 from fastapi import Depends, HTTPException, status
-from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 import os
@@ -7,21 +6,22 @@ from dotenv import load_dotenv
 from src.database.database import get_profile_by_email
 from src.models import Profile
 from fastapi.security import OAuth2PasswordBearer
+from pwdlib import PasswordHash
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY") or ""
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 60 * 24
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # hash a password
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+def hash_password(password: str):
+    return password_hash.hash(password)
 
 # returns T/F depending on if right hash
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+def verify_password(password: str, hashed: str):
+    return password_hash.verify(password, hashed)
 
 # creates a token for a profile
 def create_access_token(email: str, profile_id: int) -> str:

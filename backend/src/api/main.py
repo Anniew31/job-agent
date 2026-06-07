@@ -8,25 +8,44 @@ from src.database.database import *
 from src.services.pipeline import full_pipeline
 from pydantic import BaseModel
 from src.services.auth import *
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+init_db()
 
 class RegisterRequest(BaseModel):
     email: str
     password: str
-    profile_data: Profile
-
-app = FastAPI()
 
 @app.get("/")
 def root():
     return {"status": "ok"}
 
-@app.post("/register", status_code= 201)
+@app.post("/auth/register", status_code= 201)
 def register(request: RegisterRequest):
-    if get_profile_by_email(request.email): 
+    if get_profile_by_email(request.email) is not None:
         raise HTTPException(status_code=409, detail="Email already exists")
-    profile = create_profile(request.email, hash_password(request.password), request.profile_data)
+    password_hash = hash_password(request.password)
+    profile = create_empty_profile(request.email, password_hash)
     token = create_access_token(request.email, profile["id"])
-    return {"status": "account created","token": token}
+
+    return {
+        "status": "account created",
+        "token": token,
+        "profile_id": profile["id"]
+    }
+
+@app.get("/test-hash")
+def test_hash():
+    return {"hash": hash_password("abc123")}
     
 @app.post("/auth/login")
 def login(form: OAuth2PasswordRequestForm = Depends()):
@@ -35,7 +54,7 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not verify_password(form.password, profile["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    token = create_access_token(form.username, profile["id"])
+    token = create_access_token(form.username, profile["id"] or -1)
     return {"access_token": token, "token_type": "bearer"}
 
 @app.post("/scrape")

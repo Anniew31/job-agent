@@ -23,9 +23,9 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS profiles (
             id              SERIAL PRIMARY KEY,
-            email           TEXT UNIQUE NOT NULL,
-            password_hash   TEXT NOT NULL,
-            name            TEXT NOT NULL,
+            email           TEXT UNIQUE,
+            password_hash   TEXT,
+            name            TEXT,
             phone           TEXT,
             location        TEXT,
             websites        TEXT,
@@ -88,11 +88,11 @@ def create_profile(email, password_hash, profile_data: Profile) -> Profile:
         profile_data.name,
         profile_data.phone,
         profile_data.location,
-        json.dumps([p.model_dump() for p in profile_data.projects]),
+        json.dumps(profile_data.websites),
         profile_data.positioning,
-        json.dumps([e.model_dump() for e in profile_data.education]),
-        json.dumps([e.model_dump() for e in profile_data.experience]),
-        json.dumps([p.model_dump() for p in profile_data.projects]),
+        json.dumps(profile_data.education),
+        json.dumps(profile_data.experience),
+        json.dumps(profile_data.projects),
         json.dumps(profile_data.skills),
         json.dumps(profile_data.target_roles),
         profile_data.role_type,
@@ -114,6 +114,26 @@ def create_profile(email, password_hash, profile_data: Profile) -> Profile:
     if profile.get("skills"):
         profile["skills"] = json.loads(profile["skills"])
     return Profile(**profile)
+
+# creates empty profile for registration
+def create_empty_profile(email, password_hash):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO profiles (email, password_hash, created_at)
+        VALUES (%s, %s, %s)
+        RETURNING *
+    """, (email, password_hash, datetime.now()))
+
+    conn.commit()
+    row = cursor.fetchone()
+    conn.close()
+
+    if row is None:
+        raise Exception("Profile creation failed — no row returned")
+
+    return dict(row)
 
 # gets profile with a matching email
 def get_profile_by_email(email: str) -> dict | None:

@@ -8,16 +8,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleLogin() {
+    setError("");
     try {
       setLoading(true);
       await login(email, password);
-
-      alert("Login successful!");
       window.location.href = "/";
-    } catch (err) {
-      alert("Login failed");
+    } catch (err: any) {
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }

@@ -6,7 +6,7 @@ export async function login(email: string, password: string) {
     formData.append("username", email);
     formData.append("password", password);
 
-    const res = await fetch('${BASE_URL}/auth/login', {
+    const res = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -23,6 +23,19 @@ export async function login(email: string, password: string) {
     localStorage.setItem("token", data.access_token);
 
     return data;
+}
+
+// sends request to register a new account
+export async function register(email: string, password: string) {
+  const res = await fetch(`${BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) throw new Error("Register failed");
+
+  return res.json();
 }
 
 // reads token from browser and attaches it if existing
@@ -55,7 +68,7 @@ export async function getJobs(status?: string) {
 
 // sends a request to scrape jobs based on profile
 export async function scrape() {
-  const res = await fetch('${BASE_URL}/scrape', {
+  const res = await fetch(`${BASE_URL}/scrape`, {
     method: "POST",
     headers: getAuthHeaders(),
   });
@@ -69,7 +82,7 @@ export async function scrape() {
 
 // sends a request to tailor resume and cover letter
 export async function tailor() {
-  const res = await fetch('${BASE_URL}/tailor', {
+  const res = await fetch(`${BASE_URL}/tailor`, {
     method: "POST",
     headers: getAuthHeaders(),
   });
@@ -83,7 +96,7 @@ export async function tailor() {
 
 // sends a request to score job description for fit based on profile
 export async function score() {
-  const res = await fetch('${BASE_URL}/score', {
+  const res = await fetch(`${BASE_URL}/score`, {
     method: "POST",
     headers: getAuthHeaders(),
   });
@@ -96,8 +109,8 @@ export async function score() {
 }
 
 // runs whole pipline: scraping, scoring, tailoring
-export async function runPipline() {
-  const res = await fetch('${BASE_URL}/run', {
+export async function runPipeline() {
+  const res = await fetch(`${BASE_URL}/run`, {
     method: "POST",
     headers: getAuthHeaders(),
   });
