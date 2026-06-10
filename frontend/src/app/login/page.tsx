@@ -14,8 +14,12 @@ export default function LoginPage() {
     setError("");
     try {
       setLoading(true);
-      await login(email, password);
-      window.location.href = "/";
+      const res = await login(email, password);
+      if (res.profile_complete) {
+        window.location.href = "/" //REPLACE WITH DASHBOARD PAGE LATER
+      } else {
+        window.location.href = "/create-profile"
+      }
     } catch (err: any) {
       setError(err.message || "Login failed");
     } finally {

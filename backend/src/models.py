@@ -161,3 +161,55 @@ class Profile(BaseModel):
     @field_validator("salary_floor")
     def _salary(cls, v):
         return validate_salary(v)
+    
+class createProfileRequest(BaseModel):
+    name: str
+    phone: str
+    location: str
+    target_roles: list[str]
+    role_type: Literal["internship", "fulltime", "either"]
+    work_preference: Literal["remote", "onsite", "hybrid", "any"]
+
+    @field_validator("name", "location")
+    def _not_empty(cls, v):
+        return validate_not_empty(v)
+    
+    @field_validator("phone")
+    def _phone(cls, v):
+        if not v.isdigit():
+            raise ValueError("phone must contain only digits")
+
+        if len(v) != 10:
+            raise ValueError("please enter extactly 10 digits")
+        return v
+    
+class ProfessionalProfileRequest(BaseModel):
+    positioning: str
+    websites: list[Website]
+    skills: dict[str, list[str]]
+
+    @field_validator("positioning")
+    def _not_empty(cls, v):
+        return validate_not_empty(v)
+    
+class EducationRequest(BaseModel):
+    education: list[Education]
+
+    @field_validator("education")
+    def _education(cls, v):
+        return validate_list_not_empty(v)
+
+class ExperienceRequest(BaseModel):
+    experience: list[WorkExperience]
+
+class ProjectsRequest(BaseModel):
+    projects: list[Project]
+
+class PreferencesRequest(BaseModel):
+    salary_floor: Optional[int] = None
+    salary_type: Optional[Literal["hourly", "annual"]] = None
+    deal_breakers: list[str] = []
+
+    @field_validator("salary_floor")
+    def _salary(cls, v):
+        return validate_salary(v)

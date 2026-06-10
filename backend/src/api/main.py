@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from src.services.scraper.scraper import scrape_for_profile 
 from src.services.tailor.runner import run_tailor
 from src.services.scorer.runner import run_scorer
-from src.models import Profile
+from src.models import Profile, createProfileRequest
 from src.database.database import *
 from src.services.pipeline import full_pipeline
 from pydantic import BaseModel
@@ -55,7 +55,18 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
     if not verify_password(form.password, profile["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token(form.username, profile["id"] or -1)
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token, 
+        "token_type": "bearer",
+        "profile_complete": profile["profile_complete"]
+    }
+
+@app.patch("/profile/basic")
+def profile(basicProfile: createProfileRequest, current_user: Profile = Depends(get_current_user)):
+    if current_user is None or current_user.id is None:
+        raise HTTPException(status_code=400, detail="Invalid user")
+    update_basic_profile(current_user.id, basicProfile)
+    return {"status": "profile saved"}
 
 @app.post("/scrape")
 def scrape(background_tasks: BackgroundTasks, current_user: Profile = Depends(get_current_user)):

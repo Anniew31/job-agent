@@ -4,7 +4,7 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from datetime import datetime
 import json
-from src.models import Profile
+from src.models import Profile, createProfileRequest
 
 load_dotenv()
 
@@ -41,6 +41,7 @@ def init_db():
             salary_type     TEXT,
             deal_breakers   TEXT,
             created_at      TIMESTAMP
+            profile_complete BOOLEAN DEFAULT FALSE
         )
     """)
 
@@ -134,6 +135,27 @@ def create_empty_profile(email, password_hash):
         raise Exception("Profile creation failed — no row returned")
 
     return dict(row)
+
+# updates profiles basic info
+def update_basic_profile(profile_id: int, request: createProfileRequest):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE profiles SET name = %s, phone = %s, location = %s, target_roles = %s, role_type = %s, work_preference = %s 
+        WHERE id = %s
+    """, (request.name, request.phone, request.location, json.dumps(request.target_roles), request.role_type, request.work_preference, profile_id))
+    
+    conn.commit()
+    conn.close()
+
+# changes value in database to indicate profile is complete
+def update_profile_complete(profile_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE profiles SET profile_complete = TRUE WHERE id = %s", (profile_id,))
+    conn.commit()
+    conn.close()
 
 # gets profile with a matching email
 def get_profile_by_email(email: str) -> dict | None:

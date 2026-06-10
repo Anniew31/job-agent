@@ -23,7 +23,7 @@ export default function RegisterPage() {
         try {
             setLoading(true);
             await register(email, password);
-            window.location.href = "/"; //REPLACE LATER
+            window.location.href = "/create-profile"; 
         } catch (err: any) {
             setError(err.message || "Registration failed");
         } finally {
