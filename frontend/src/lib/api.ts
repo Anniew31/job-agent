@@ -38,6 +38,9 @@ export async function register(email: string, password: string) {
   return res.json();
 }
 
+
+
+
 // reads token from browser and attaches it if existing
 function getAuthHeaders() {
     const token = localStorage.getItem("token");
@@ -123,3 +126,42 @@ export async function runPipeline() {
 }
 
 export {};
+
+// update profile helper
+async function updateProfile(endpoint: string, data: any) {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        throw new Error("Failed to save profile");
+    }
+
+    return await res.json();
+}
+
+export async function updateBasicProfile(data: any) {
+  return updateProfile("/profile/basic", data);
+}
+
+export async function updateProfessionalProfile(data: any) {
+  return updateProfile("/profile/professional", data);
+}
+
+export async function updateEducation(data: any) {
+  return updateProfile("/profile/education", data);
+}
+
+export async function updateExperience(data: any) {
+  return updateProfile("/profile/experience", data);
+}
+
+export async function updateProjects(data: any) {
+  return updateProfile("/profile/projects", data);
+}
+
+export async function updatePreferences(data: any) {
+  return updateProfile("/profile/preferences", data);
+}
