@@ -4,8 +4,7 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from datetime import datetime
 import json
-from src.models import Profile, createProfileRequest
-
+from src.models import *
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -137,17 +136,64 @@ def create_empty_profile(email, password_hash):
     return dict(row)
 
 # updates profiles basic info
-def update_basic_profile(profile_id: int, request: createProfileRequest):
+def update_basic_profile(profile_id: int, request: BasicProfileRequest):
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute("""
         UPDATE profiles SET name = %s, phone = %s, location = %s, target_roles = %s, role_type = %s, work_preference = %s 
         WHERE id = %s
     """, (request.name, request.phone, request.location, json.dumps(request.target_roles), request.role_type, request.work_preference, profile_id))
-    
     conn.commit()
     conn.close()
+    return cursor.rowcount
+
+# updates profile's professional info
+def update_profile_professional(profile_id: int, request: ProfessionalProfileRequest):
+    conn = get_connection()
+    cursor = conn.cursor()              
+    cursor.execute("UPDATE profiles SET positioning = %s, websites = %s, skills = %s WHERE id = %s", 
+    (request.positioning, json.dumps([w.model_dump() for w in request.websites]), json.dumps(request.skills),profile_id))
+    conn.commit()
+    conn.close()
+    return cursor.rowcount
+
+# updates profile's education info
+def update_profile_education(profile_id: int, request: EducationRequest):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE profiles SET education = %s WHERE id = %s", (json.dumps([e.model_dump() for e in request.education]),profile_id))
+    conn.commit()
+    conn.close()
+    return cursor.rowcount
+
+# updates profile's experience
+def update_profile_experience(profile_id: int, request: ExperienceRequest):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE profiles SET experience = %s WHERE id = %s", (json.dumps([e.model_dump() for e in request.experience]),profile_id))
+    conn.commit()
+    conn.close()
+    return cursor.rowcount
+
+# updates profile's projects
+def update_profile_projects(profile_id: int, request: ProjectsRequest):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE profiles SET projects = %s WHERE id = %s", (json.dumps([e.model_dump() for e in request.projects]),profile_id))
+    conn.commit()
+    conn.close()
+    return cursor.rowcount
+
+# updates profile's preferences
+def update_profile_preference(profile_id: int, request: PreferencesRequest):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE profiles SET salary_floor = %s, salary_type = %s, deal_breakers = %s WHERE id = %s
+    """, (request.salary_floor, request.salary_type, json.dumps(request.deal_breakers), profile_id))
+    conn.commit()
+    conn.close()
+    return cursor.rowcount
 
 # changes value in database to indicate profile is complete
 def update_profile_complete(profile_id: int):
@@ -156,6 +202,7 @@ def update_profile_complete(profile_id: int):
     cursor.execute("UPDATE profiles SET profile_complete = TRUE WHERE id = %s", (profile_id,))
     conn.commit()
     conn.close()
+    return cursor.rowcount
 
 # gets profile with a matching email
 def get_profile_by_email(email: str) -> dict | None:

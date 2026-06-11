@@ -162,7 +162,7 @@ class Profile(BaseModel):
     def _salary(cls, v):
         return validate_salary(v)
     
-class createProfileRequest(BaseModel):
+class BasicProfileRequest(BaseModel):
     name: str
     phone: str
     location: str

@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from src.services.scraper.scraper import scrape_for_profile 
 from src.services.tailor.runner import run_tailor
 from src.services.scorer.runner import run_scorer
-from src.models import Profile, createProfileRequest
+from src.models import *
 from src.database.database import *
 from src.services.pipeline import full_pipeline
 from pydantic import BaseModel
@@ -24,6 +24,18 @@ init_db()
 class RegisterRequest(BaseModel):
     email: str
     password: str
+
+# update profile helper
+def update_profile_section(update_fn, profile_id: int | None, request):
+    if profile_id is None:
+        raise HTTPException(status_code=400, detail="Invalid user")
+
+    updated = update_fn(profile_id, request)
+
+    if updated == 0:
+        raise HTTPException(status_code=404, detail="Failed to update")
+
+    return {"status": "profile saved"}
 
 @app.get("/")
 def root():
@@ -62,11 +74,28 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
     }
 
 @app.patch("/profile/basic")
-def profile(basicProfile: createProfileRequest, current_user: Profile = Depends(get_current_user)):
-    if current_user is None or current_user.id is None:
-        raise HTTPException(status_code=400, detail="Invalid user")
-    update_basic_profile(current_user.id, basicProfile)
-    return {"status": "profile saved"}
+def basic_profile(request: BasicProfileRequest, current_user: Profile = Depends(get_current_user)):
+    return update_profile_section(update_basic_profile, current_user.id, request)
+
+@app.patch("/profile/professional")
+def professional_profile(request: ProfessionalProfileRequest, current_user: Profile = Depends(get_current_user)):
+    return update_profile_section(update_profile_professional, current_user.id, request)
+
+@app.patch("/profile/education")
+def education_profile(request: EducationRequest, current_user: Profile = Depends(get_current_user)):
+    return update_profile_section(update_profile_education, current_user.id, request)
+
+@app.patch("/profile/experience")
+def experience_profile(request: ExperienceRequest, current_user: Profile = Depends(get_current_user)):
+    return update_profile_section(update_profile_experience, current_user.id, request)
+
+@app.patch("/profile/projects")
+def project_profile(request: ProjectsRequest, current_user: Profile = Depends(get_current_user)):
+    return update_profile_section(update_profile_projects, current_user.id, request)
+
+@app.patch("/profile/preferences")
+def preference_profile(request: PreferencesRequest, current_user: Profile = Depends(get_current_user)):
+    return update_profile_section(update_profile_preference, current_user.id, request)
 
 @app.post("/scrape")
 def scrape(background_tasks: BackgroundTasks, current_user: Profile = Depends(get_current_user)):
