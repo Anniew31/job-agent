@@ -139,6 +139,7 @@ async function updateProfile(endpoint: string, data: any) {
     return await res.json();
 }
 
+//update profile functions
 export async function updateBasicProfile(data: any) {
   return updateProfile("/profile/basic", data);
 }
@@ -169,5 +170,15 @@ export async function completeProfile() {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Failed to complete profile");
+  return res.json();
+}
+
+// retrieves profile model based on current_user
+export async function getProfile() {
+  const res = await fetch(`${BASE_URL}/profile`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to retrieve profile");
   return res.json();
 }

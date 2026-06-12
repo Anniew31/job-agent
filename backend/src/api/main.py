@@ -139,3 +139,9 @@ def run_pipeline(background_tasks: BackgroundTasks, current_user: AuthUser = Dep
         raise HTTPException(status_code=400, detail="Invalid user")
     background_tasks.add_task(full_pipeline, current_user.id)
     return {"status": "pipeline started"}
+
+@app.get("/profile")
+def get_profile(current_user: AuthUser = Depends(get_current_user)):
+    if current_user is None or current_user.id is None:
+        raise HTTPException(status_code=400, detail="Invalid user")
+    return get_profile_by_id(current_user.id)

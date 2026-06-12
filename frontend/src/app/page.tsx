@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { BRAND } from "../lib/theme";
+import DashboardMetrics from "../components/DashboardMetrics";
 
 export default function Home() {
+  const mockMarketingData = [
+    { title: "SWE Intern", company: "Stripe", score: 9, status: "applied" },
+    { title: "Frontend Intern", company: "Notion", score: 8, status: "reviewed" },
+    { title: "SWE Intern", company: "Linear", score: 7, status: "scraped" },
+    { title: "Product Eng Intern", company: "Figma", score: 5, status: "rejected" },
+  ];
+  
   return (
     <main style={{ minHeight: "100vh", background: BRAND.bg, fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
@@ -27,7 +35,6 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* ── hero ── */}
       <section style={{ maxWidth: "700px", margin: "0 auto", padding: "5.5rem 2rem 3.5rem", textAlign: "center" }}>
         <div style={{
           display: "inline-flex", alignItems: "center", gap: "6px",
@@ -309,75 +316,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <section style={{ maxWidth: "900px", margin: "5rem auto", padding: "0 2rem" }}>
-        <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-          <p style={{ fontSize: "0.75rem", fontWeight: 600, color: BRAND.blue, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.5rem" }}>dashboard</p>
-          <h2 style={{ fontSize: "1.75rem", fontWeight: 700, color: BRAND.navy, letterSpacing: "-0.03em", marginBottom: "0.5rem" }}>Track every application</h2>
-          <p style={{ fontSize: "0.95rem", color: BRAND.muted }}>Edit status, view AI scores, and see your pipeline at a glance.</p>
-        </div>
-
-        <div style={{
-          background: BRAND.surface, borderRadius: "16px",
-          border: `1px solid ${BRAND.border}`, overflow: "hidden",
-          boxShadow: "0 4px 32px rgba(59,111,212,0.06)",
-        }}>
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
-            borderBottom: `1px solid ${BRAND.border}`,
-          }}>
-            {[
-              { label: "Scraped", value: "42", color: BRAND.navy },
-              { label: "Reviewed", value: "18", color: BRAND.blue },
-              { label: "Applied", value: "7", color: BRAND.green },
-              { label: "Avg score", value: "7.4", color: BRAND.amber },
-            ].map((s, i) => (
-              <div key={s.label} style={{
-                padding: "1.25rem 1.5rem",
-                borderRight: i < 3 ? `1px solid ${BRAND.border}` : "none",
-              }}>
-                <p style={{ fontSize: "0.72rem", color: BRAND.faint, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px" }}>{s.label}</p>
-                <p style={{ fontSize: "1.75rem", fontWeight: 700, color: s.color, margin: 0, letterSpacing: "-0.03em" }}>{s.value}</p>
-              </div>
-            ))}
-          </div>
-          <div style={{
-            display: "grid", gridTemplateColumns: "1fr 140px 80px 120px",
-            padding: "0.6rem 1.5rem", background: BRAND.bg,
-            borderBottom: `1px solid ${BRAND.border}`,
-          }}>
-            {["Job", "Company", "Score", "Status"].map((h) => (
-              <p key={h} style={{ fontSize: "0.7rem", fontWeight: 600, color: BRAND.faint, textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>{h}</p>
-            ))}
-          </div>
-          {[
-            { title: "SWE Intern", company: "Stripe", score: 9, status: "applied", sc: BRAND.green, sb: BRAND.greenBg },
-            { title: "Frontend Intern", company: "Notion", score: 8, status: "reviewing", sc: BRAND.amber, sb: BRAND.amberBg },
-            { title: "SWE Intern", company: "Linear", score: 7, status: "applied", sc: BRAND.green, sb: BRAND.greenBg },
-            { title: "Product Eng Intern", company: "Figma", score: 5, status: "rejected", sc: BRAND.red, sb: BRAND.redBg },
-          ].map((job, i) => (
-            <div key={job.company} style={{
-              display: "grid", gridTemplateColumns: "1fr 140px 80px 120px",
-              padding: "0.9rem 1.5rem", alignItems: "center",
-              borderBottom: i < 3 ? `1px solid ${BRAND.borderLight}` : "none",
-            }}>
-              <p style={{ fontSize: "0.875rem", fontWeight: 500, color: BRAND.navy, margin: 0 }}>{job.title}</p>
-              <p style={{ fontSize: "0.825rem", color: BRAND.muted, margin: 0 }}>{job.company}</p>
-              <div style={{
-                width: 36, height: 36, borderRadius: "50%",
-                background: BRAND.blueLight, display: "flex",
-                alignItems: "center", justifyContent: "center",
-                fontSize: "0.8rem", fontWeight: 700, color: BRAND.blue,
-              }}>{job.score}</div>
-              <span style={{
-                fontSize: "0.75rem", fontWeight: 500,
-                color: job.sc, background: job.sb,
-                padding: "0.25rem 0.65rem", borderRadius: "100px",
-                display: "inline-block",
-              }}>{job.status}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      <DashboardMetrics applications={mockMarketingData} />
       <section style={{
         borderTop: `1px solid ${BRAND.border}`, padding: "5rem 2rem",
         textAlign: "center", background: BRAND.surface,
