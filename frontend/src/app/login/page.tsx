@@ -16,7 +16,7 @@ export default function LoginPage() {
       setLoading(true);
       const res = await login(email, password);
       if (res.profile_complete) {
-        window.location.href = "/" //REPLACE WITH DASHBOARD PAGE LATER
+        window.location.href = "/dashboard"
       } else {
         window.location.href = "/create-profile"
       }
@@ -94,7 +94,7 @@ export default function LoginPage() {
             <button
               onClick={handleLogin}
               disabled={loading}
-              style={{
+              style={{ 
                 marginTop: "0.5rem",
                 padding: "0.75rem",
                 borderRadius: "10px",

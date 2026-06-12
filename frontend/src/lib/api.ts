@@ -7,11 +7,11 @@ export async function login(email: string, password: string) {
     formData.append("password", password);
 
     const res = await fetch(`${BASE_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formData,
+      method: "POST",
+      headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData,
     });
 
     if (!res.ok) {
@@ -35,11 +35,10 @@ export async function register(email: string, password: string) {
 
   if (!res.ok) throw new Error("Register failed");
 
-  return res.json();
+  const data = await res.json();
+  localStorage.setItem("token", data.access_token);
+  return data;
 }
-
-
-
 
 // reads token from browser and attaches it if existing
 function getAuthHeaders() {
@@ -125,8 +124,6 @@ export async function runPipeline() {
   return await res.json();
 }
 
-export {};
-
 // update profile helper
 async function updateProfile(endpoint: string, data: any) {
     const res = await fetch(`${BASE_URL}${endpoint}`, {
@@ -164,4 +161,13 @@ export async function updateProjects(data: any) {
 
 export async function updatePreferences(data: any) {
   return updateProfile("/profile/preferences", data);
+}
+
+export async function completeProfile() {
+  const res = await fetch(`${BASE_URL}/profile/complete`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to complete profile");
+  return res.json();
 }

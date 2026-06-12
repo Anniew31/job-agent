@@ -138,8 +138,8 @@ class Profile(BaseModel):
     skills: dict[str, list[str]]
     target_roles: list[str]
 
-    role_type: Literal["internship", "fulltime", "either"]
-    work_preference: Literal["remote", "onsite", "hybrid", "any"]
+    role_type: Literal["Internship", "Fulltime", "Either"]
+    work_preference: Literal["Remote", "Onsite", "Hybrid", "Any"]
 
     salary_floor: int
     salary_type: Literal["hourly", "annual"]
@@ -167,8 +167,8 @@ class BasicProfileRequest(BaseModel):
     phone: str
     location: str
     target_roles: list[str]
-    role_type: Literal["internship", "fulltime", "either"]
-    work_preference: Literal["remote", "onsite", "hybrid", "any"]
+    role_type: Literal["Internship", "Fulltime", "Either"]
+    work_preference: Literal["Remote", "Onsite", "Hybrid", "Any"]
 
     @field_validator("name", "location")
     def _not_empty(cls, v):
@@ -213,3 +213,11 @@ class PreferencesRequest(BaseModel):
     @field_validator("salary_floor")
     def _salary(cls, v):
         return validate_salary(v)
+    
+class AuthUser(BaseModel):
+    id: int
+    email: str
+
+    @field_validator("email")
+    def _email(cls, v):
+        return validate_email(v)

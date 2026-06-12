@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 from src.database.database import get_profile_by_email
-from src.models import Profile
+from src.models import AuthUser
 from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 
@@ -44,7 +44,7 @@ def decode_token(token: str) -> dict:
         )
 
 # reads token from header and returns profile dict
-def get_current_user(token: str = Depends(oauth2_scheme)) -> Profile:
+def get_current_user(token: str = Depends(oauth2_scheme)) -> AuthUser:
     payload = decode_token(token)
     email = payload.get("sub")
     profile = get_profile_by_email(email or "")
@@ -53,6 +53,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> Profile:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
         )
-    return Profile(**profile)
+    return AuthUser(id=profile["id"],email=profile["email"])
 
 

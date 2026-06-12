@@ -39,7 +39,7 @@ def init_db():
             salary_floor    INTEGER,
             salary_type     TEXT,
             deal_breakers   TEXT,
-            created_at      TIMESTAMP
+            created_at      TIMESTAMP,
             profile_complete BOOLEAN DEFAULT FALSE
         )
     """)
