@@ -157,3 +157,10 @@ def recent_jobs(current_user: AuthUser = Depends(get_current_user)):
     if current_user is None or current_user.id is None:
         raise HTTPException(status_code=400, detail="Invalid user")
     return get_recent_jobs(current_user.id)
+
+@app.get("/profile/finder-analytics")
+def get_finder_analytics(current_user: AuthUser = Depends(get_current_user)):
+    if current_user is None or current_user.id is None:
+        raise HTTPException(status_code=400, detail="Invalid user session")
+    return get_finder_chart_data(current_user.id)
+    

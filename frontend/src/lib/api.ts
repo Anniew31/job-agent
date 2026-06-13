@@ -202,3 +202,17 @@ export async function getRecentJobs() {
   if (!res.ok) throw new Error("Failed to retrieve recent jobs feed");
   return res.json();
 }
+
+
+// gets job discovery metrics for previous week of activity
+export async function getFinderAnalytics() {
+  const res = await fetch(`${BASE_URL}/profile/finder-analytics`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to retrieve finder analytics");
+  }
+  const data = await res.json();
+  return data.json();
+}

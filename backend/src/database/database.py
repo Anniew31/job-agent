@@ -349,3 +349,26 @@ def get_job(job_id: int, profile_id: int):
     job = cursor.fetchone()
     conn.close()
     return dict(job) if job else None
+
+# returns daily counts for the visual trend chart for a week
+def get_finder_chart_data(profile_id: int) -> list:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT 
+                TO_CHAR(scraped_at, 'Mon DD') as formatted_date,
+                COUNT(id) as jobs_found
+            FROM jobs
+            WHERE profile_id = %s AND scraped_at IS NOT NULL
+            GROUP BY TO_CHAR(scraped_at, 'Mon DD'), DATE_TRUNC('day', scraped_at)
+            ORDER BY DATE_TRUNC('day', scraped_at) DESC
+            LIMIT 7
+        """, (profile_id,))
+        rows = cursor.fetchall()
+        history = [dict(row) for row in rows] if rows else []
+        history.reverse()
+        return history
+    finally:
+        cursor.close()
+        conn.close()
