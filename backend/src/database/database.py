@@ -230,6 +230,56 @@ def get_profile_by_id(id: int) -> Profile | None:
         if profile.get("skills"):
             profile["skills"] = json.loads(profile["skills"])
         return Profile(**profile)
+    
+# calculates the needed dashboard metrics
+def get_metrics(id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as scraped_count,
+            COALESCE(SUM(CASE WHEN status = 'reviewed' THEN 1 ELSE 0 END), 0) as reviewed_count,
+            COALESCE(SUM(CASE WHEN status = 'applied' THEN 1 ELSE 0 END), 0) as applied_count,
+            COALESCE(ROUND(AVG(score), 1), 0.0) as avg_score
+        FROM jobs WHERE profile_id = %s""", (id,))
+    row = cursor.fetchone()    
+    cursor.close()
+    conn.close()
+
+    if row:
+        metrics = dict(row)
+        if metrics.get("avg_score") is not None:
+            metrics["avg_score"] = float(metrics["avg_score"])
+        else:
+            metrics["avg_score"] = 0.0
+        return metrics
+    return {
+        "scraped_count": 0,
+        "reviewed_count": 0,
+        "applied_count": 0,
+        "avg_score": 0.0
+    }
+
+# gets the most recently scraped jobs
+def get_recent_jobs(profile_id: int, limit: int = 10) -> list:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT id, title, company, score, status
+        FROM jobs 
+        WHERE profile_id = %s
+        ORDER BY id DESC 
+        LIMIT %s
+    """, (profile_id, limit))
+    
+    rows = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+
+    return [dict(row) for row in rows] if rows else []
+
 
 # inserts jobs into databse
 def insert_job(profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url):

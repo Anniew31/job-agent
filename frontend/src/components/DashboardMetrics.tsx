@@ -34,7 +34,13 @@ export default function DashboardMetrics({ applications = [], isDashboardView = 
     };
 
     return (
-        <section style={{ maxWidth: isDashboardView ? "1200px" : "900px", margin: isDashboardView ? "2rem auto" : "5rem auto", padding: isDashboardView ? "0" : "0 2rem"}}>
+        <section style={{ 
+            width: "100%", 
+            maxWidth: isDashboardView ? "1200px" : "900px", 
+            margin: isDashboardView ? "0 auto" : "5rem auto", 
+            padding: isDashboardView ? "0" : "0 2rem",
+            boxSizing: "border-box"
+        }}>
             {!isDashboardView && (
             <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
                 <p style={{ fontSize: "0.75rem", fontWeight: 600, color: BRAND.blue, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.5rem" }}>dashboard</p>
@@ -43,8 +49,15 @@ export default function DashboardMetrics({ applications = [], isDashboardView = 
             </div>
             )}
 
-            <div style={{background: BRAND.surface, borderRadius: "16px",border: `1px solid ${BRAND.border}`, overflow: "hidden",boxShadow: isDashboardView ? "none" : "0 4px 32px rgba(59,111,212,0.06)"}}>
-                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", borderBottom: `1px solid ${BRAND.border}`}}>
+            <div style={{
+                background: BRAND.surface, 
+                borderRadius: "16px",border: `1px solid ${BRAND.border}`, 
+                overflow: "hidden",
+                boxShadow: isDashboardView ? "none" : "0 4px 32px rgba(59,111,212,0.06)",
+                width: "100%",
+                boxSizing: "border-box"
+            }}>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderBottom: `1px solid ${BRAND.border}`}}>
                     {[
                         { label: "Scraped", value: scrapedCount, color: BRAND.navy },
                         { label: "Reviewed", value: reviewedCount, color: BRAND.blue },
@@ -58,9 +71,9 @@ export default function DashboardMetrics({ applications = [], isDashboardView = 
                     ))}
                 </div>
 
-                <div style={{display: "grid", gridTemplateColumns: "1fr 140px 80px 120px",padding: "0.6rem 1.5rem", background: BRAND.bg,borderBottom: `1px solid ${BRAND.border}`}}>
+                <div style={{display: "grid", gridTemplateColumns: "2fr 1.2fr 0.6fr 1fr", gap: "0.75rem",padding: "0.6rem 1.5rem", background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}`}}>
                     {["Job", "Company", "Score", "Status"].map((h) => (
-                        <p key={h} style={{ fontSize: "0.7rem", fontWeight: 600, color: BRAND.faint, textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>{h}</p>
+                        <p key={h} style={{ fontSize: "0.68rem", fontWeight: 600, color: BRAND.faint, textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>{h}</p>
                     ))}
                 </div>
 
@@ -69,12 +82,13 @@ export default function DashboardMetrics({ applications = [], isDashboardView = 
                     return (
                         <div key={`${job.company}-${i}`} style={{
                             display: "grid", 
-                            gridTemplateColumns: "1fr 140px 80px 120px",
+                            gridTemplateColumns: "2fr 1.2fr 0.6fr 1fr",
+                            gap: "0.75rem",
                             padding: "0.9rem 1.5rem", 
                             alignItems: "center",
                             borderBottom: i < applications.length - 1 ? `1px solid ${BRAND.borderLight}` : "none",
                         }}>
-                            <p style={{ fontSize: "0.875rem", fontWeight: 500, color: BRAND.navy, margin: 0 }}>{job.title}</p>
+                            <p style={{ fontSize: "0.8rem", fontWeight: 500, color: BRAND.navy, margin: 0 }}>{job.title}</p>
                             <p style={{ fontSize: "0.825rem", color: BRAND.muted, margin: 0 }}>{job.company}</p>
                             <div style={{width: 36, height: 36, borderRadius: "50%",background: BRAND.blueLight, display: "flex",alignItems: "center", justifyContent: "center",fontSize: "0.8rem", fontWeight: 700, color: BRAND.blue}}>
                                 {job.score}

@@ -173,12 +173,32 @@ export async function completeProfile() {
   return res.json();
 }
 
-// retrieves profile model based on current_user
+// retrieves profile model based on current user
 export async function getProfile() {
   const res = await fetch(`${BASE_URL}/profile`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Failed to retrieve profile");
+  return res.json();
+}
+
+// retrieves profile metrics
+export async function getMetrics() {
+  const res = await fetch(`${BASE_URL}/profile/metrics`, {
+    method: "GET", 
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to retrieve metrics");
+  return res.json();
+}
+
+// gets 10 most recent jobs
+export async function getRecentJobs() {
+  const res = await fetch(`${BASE_URL}/profile/jobs`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  }); 
+  if (!res.ok) throw new Error("Failed to retrieve recent jobs feed");
   return res.json();
 }
