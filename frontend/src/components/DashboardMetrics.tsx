@@ -6,7 +6,7 @@ interface JobApplication {
     title: string;
     company: string;
     score: number;
-    status: "scraped" | "reviewed" | "applied" | "rejected" | string;
+    status: "pending" | "reviewed" | "accepted" | "rejected" | "applied" | string;
 }
 
 interface DashboardMetricsProps { 
@@ -16,18 +16,16 @@ interface DashboardMetricsProps {
 
 export default function DashboardMetrics({ applications = [], isDashboardView = false }: DashboardMetricsProps) {
   
-    const scrapedCount = applications.filter(app => app.status === "scraped").length;
+    const scrapedCount = applications.filter(app => app.status === "pending").length;
     const reviewedCount = applications.filter(app => app.status === "reviewed").length;
+    const acceptedCount = applications.filter(app => app.status === "accepted").length;
     const appliedCount = applications.filter(app => app.status === "applied").length;
-    
-    const avgScore = applications.length > 0 
-    ? (applications.reduce((sum, app) => sum + app.score, 0) / applications.length).toFixed(1)
-    : "0.0";
 
     const getStatusStyles = (status: string) => {
     switch(status.toLowerCase()) {
         case "applied": return { text: BRAND.green, bg: BRAND.greenBg };
         case "reviewed": case "reviewing": return { text: BRAND.amber, bg: BRAND.amberBg };
+        case "accepted": return { text: BRAND.amber, bg: BRAND.amberBg};
         case "rejected": return { text: BRAND.red, bg: BRAND.redBg };
         default: return { text: BRAND.navy, bg: BRAND.blueLight };
     }
@@ -59,10 +57,10 @@ export default function DashboardMetrics({ applications = [], isDashboardView = 
             }}>
                 <div style={{display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderBottom: `1px solid ${BRAND.border}`}}>
                     {[
-                        { label: "Scraped", value: scrapedCount, color: BRAND.navy },
+                        { label: "Found", value: scrapedCount, color: BRAND.navy },
                         { label: "Reviewed", value: reviewedCount, color: BRAND.blue },
+                        { label: "Accepted", value: acceptedCount, color: BRAND.amber },
                         { label: "Applied", value: appliedCount, color: BRAND.green },
-                        { label: "Avg score", value: avgScore, color: BRAND.amber },
                     ].map((s, i, arr) => (
                         <div key={s.label} style={{padding: "1.25rem 1.5rem", borderRight: i < arr.length - 1 ? `1px solid ${BRAND.border}` : "none"}}>
                             <p style={{ fontSize: "0.72rem", color: BRAND.faint, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px" }}>{s.label}</p>

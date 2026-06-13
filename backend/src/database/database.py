@@ -232,13 +232,16 @@ def get_profile_by_id(id: int) -> Profile | None:
         return Profile(**profile)
     
 # calculates the needed dashboard metrics
+# pending = new jobs awaiting AI scoring, scored = scored, waiting for user swipe
+# accepted = user accepted it, applied = user applied for job
 def get_metrics(id: int):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT 
             COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as scraped_count,
-            COALESCE(SUM(CASE WHEN status = 'reviewed' THEN 1 ELSE 0 END), 0) as reviewed_count,
+            COALESCE(SUM(CASE WHEN status = 'scored' THEN 1 ELSE 0 END), 0) as reviewed_count,
+            COALESCE(SUM(CASE WHEN status IN ('accepted') THEN 1 ELSE 0 END), 0) as accepted_count,
             COALESCE(SUM(CASE WHEN status = 'applied' THEN 1 ELSE 0 END), 0) as applied_count,
             COALESCE(ROUND(AVG(score), 1), 0.0) as avg_score
         FROM jobs WHERE profile_id = %s""", (id,))
@@ -248,14 +251,12 @@ def get_metrics(id: int):
 
     if row:
         metrics = dict(row)
-        if metrics.get("avg_score") is not None:
-            metrics["avg_score"] = float(metrics["avg_score"])
-        else:
-            metrics["avg_score"] = 0.0
+        metrics["avg_score"] = float(metrics["avg_score"]) if metrics.get("avg_score") is not None else 0.0
         return metrics
     return {
         "scraped_count": 0,
         "reviewed_count": 0,
+        "accepted_count": 0,
         "applied_count": 0,
         "avg_score": 0.0
     }
