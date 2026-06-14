@@ -25,7 +25,6 @@ def fetch_jobs(query: str, location: str, num_pages: int = 1) -> list:
     response = requests.get(url, headers=headers, params=params)
     
     if response.status_code != 200:
-        print(f"API error {response.status_code}: {response.text[:100]}")
         return []
     
     data = response.json()
@@ -33,8 +32,6 @@ def fetch_jobs(query: str, location: str, num_pages: int = 1) -> list:
 
 # turns json into a list to save it
 def save_jobs(jobs: list, profile_id: int):
-    profile = get_profile_by_id(profile_id)
-
     saved = 0
     
     for job in jobs:
@@ -51,7 +48,8 @@ def save_jobs(jobs: list, profile_id: int):
             job_max_salary=job.get("job_max_salary"),
             benefits=benefits_str,
             description=job.get("job_description"),
-            source_url=job.get("job_apply_link")
+            source_url=job.get("job_apply_link"),
+            status="pending"
         )
         saved += 1
     
@@ -62,25 +60,15 @@ def scrape_for_profile(profile_id: int):
     profile = get_profile_by_id(profile_id)
 
     if profile is None:
-        print(f"No profile found for id {profile_id}")
         return 0
 
     target_roles = profile.target_roles 
     location = profile.location
     name = profile.name
-
-    print(f"\nScraping jobs for {name}...")
-    print(f"Roles: {target_roles}")
-    print(f"Location: {location}\n")
     
     total_saved = 0
     
     for role in target_roles:
-        print(f"Searching: {role}...")
         jobs = fetch_jobs(query=role, location=location)
-        print(f"Found {len(jobs)} results")  
         saved = save_jobs(jobs, profile_id)
         total_saved += saved
-        print(f"Saved {saved} jobs")
-    
-    print(f"\nDone. Total jobs saved: {total_saved}")

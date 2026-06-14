@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/src/lib/auth";
-import { getProfile, getFinderAnalytics, getRecentJobs } from "@/src/lib/api";
+import { getProfile, getFinderAnalytics, getRecentJobs, scrape } from "@/src/lib/api";
 import { BRAND } from "@/src/lib/theme";
 import Navbar from "@/src/components/NavBar";
 
@@ -72,10 +72,28 @@ export default function FindingJobsPage() {
     }
 
     const handleTriggerScraper = async () => {
-        setIsFinding(true);
-        setTimeout(() => {
+        try {
+            setIsFinding(true);
+            setError(null);
+
+            await scrape();
+
+            setTimeout(async () => {
+                const [analyticsRes, jobsRes] = await Promise.all([
+                    getFinderAnalytics(),
+                    getRecentJobs(),
+                ]);
+
+                setChartData(analyticsRes || []);
+                setRecentJobs(jobsRes || []);
+                setIsFinding(false);
+            }, 1500);
+
+        } catch (err: any) {
+            console.error("System error:", err);
+            alert("Unable to find jobs.");
             setIsFinding(false);
-        }, 4000);
+        }
     };
 
     return (

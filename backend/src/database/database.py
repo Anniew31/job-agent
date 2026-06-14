@@ -283,15 +283,15 @@ def get_recent_jobs(profile_id: int, limit: int = 10) -> list:
 
 
 # inserts jobs into databse
-def insert_job(profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url):
+def insert_job(profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, status):
     conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO jobs (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, scraped_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO jobs (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, status, scraped_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT ON CONSTRAINT unique_job_per_profile DO NOTHING
-        """, (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, datetime.now()))
+        """, (profile_id, title, company, location, job_type, job_min_salary, job_max_salary, benefits, description, source_url, status, datetime.now()))
         conn.commit()
     finally:
         conn.close()
@@ -370,7 +370,6 @@ def get_finder_chart_data(profile_id: int) -> list:
         history.reverse()
         return history
     except Exception as db_err:
-        print(f"Database Query Error inside get_finder_chart_data: {db_err}")
         return []
     finally:
         cursor.close()
