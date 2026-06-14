@@ -316,7 +316,17 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <DashboardMetrics applications={mockMarketingData} />
+      <DashboardMetrics
+        applications={mockMarketingData}
+        isDashboardView={false} 
+        metrics = {{
+          scraped_count: 14,
+          reviewed_count: 10,
+          accepted_count: 7,
+          applied_count: 5,
+          avg_score: 7.4,
+        }}
+      />
       <section style={{
         borderTop: `1px solid ${BRAND.border}`, padding: "5rem 2rem",
         textAlign: "center", background: BRAND.surface,

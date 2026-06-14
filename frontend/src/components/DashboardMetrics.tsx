@@ -12,14 +12,21 @@ interface JobApplication {
 interface DashboardMetricsProps { 
     applications: JobApplication[]; 
     isDashboardView?: boolean; 
+    metrics: {
+        "scraped_count": number,
+        "reviewed_count": number,
+        "accepted_count": number,
+        "applied_count": number,
+        "avg_score": number
+    }
 }
 
-export default function DashboardMetrics({ applications = [], isDashboardView = false }: DashboardMetricsProps) {
+export default function DashboardMetrics({ applications = [], isDashboardView = false, metrics = { scraped_count: 0, reviewed_count: 0, accepted_count: 0, applied_count: 0, avg_score: 0 } }: DashboardMetricsProps) {
   
-    const scrapedCount = applications.filter(app => app.status === "pending").length;
-    const reviewedCount = applications.filter(app => app.status === "reviewed").length;
-    const acceptedCount = applications.filter(app => app.status === "accepted").length;
-    const appliedCount = applications.filter(app => app.status === "applied").length;
+    const scrapedCount = metrics.scraped_count
+    const reviewedCount = metrics.reviewed_count
+    const acceptedCount = metrics.accepted_count
+    const appliedCount = metrics.applied_count
 
     const getStatusStyles = (status: string) => {
     switch(status.toLowerCase()) {

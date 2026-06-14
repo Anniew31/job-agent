@@ -93,7 +93,17 @@ export default function Dashboard() {
           </h1>
           <p style={{ fontSize: "0.95rem", color: BRAND.muted, margin: 0 }}> Here's how your job search is going.</p>
         </div>
-        <DashboardMetrics applications={recentJobs} isDashboardView={true} />
+        <DashboardMetrics
+          applications={recentJobs}
+          isDashboardView={true}
+          metrics={metrics ?? {
+            scraped_count: 0,
+            reviewed_count: 0,
+            accepted_count: 0,
+            applied_count: 0,
+            avg_score: 0,
+          }}
+        />
         {/* action cards */}
         <div style={{ marginTop: "2rem" }}>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 600, color: BRAND.navy, marginBottom: "1rem"}}>
