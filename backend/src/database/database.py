@@ -357,18 +357,21 @@ def get_finder_chart_data(profile_id: int) -> list:
     try:
         cursor.execute("""
             SELECT 
-                TO_CHAR(scraped_at, 'Mon DD') as formatted_date,
+                TO_CHAR(scraped_at::timestamp, 'Mon DD') as formatted_date,
                 COUNT(id) as jobs_found
             FROM jobs
             WHERE profile_id = %s AND scraped_at IS NOT NULL
-            GROUP BY TO_CHAR(scraped_at, 'Mon DD'), DATE_TRUNC('day', scraped_at)
-            ORDER BY DATE_TRUNC('day', scraped_at) DESC
+            GROUP BY TO_CHAR(scraped_at::timestamp, 'Mon DD'), DATE_TRUNC('day', scraped_at::timestamp)
+            ORDER BY DATE_TRUNC('day', scraped_at::timestamp) DESC
             LIMIT 7
         """, (profile_id,))
         rows = cursor.fetchall()
         history = [dict(row) for row in rows] if rows else []
         history.reverse()
         return history
+    except Exception as db_err:
+        print(f"Database Query Error inside get_finder_chart_data: {db_err}")
+        return []
     finally:
         cursor.close()
         conn.close()

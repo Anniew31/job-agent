@@ -203,7 +203,6 @@ export async function getRecentJobs() {
   return res.json();
 }
 
-
 // gets job discovery metrics for previous week of activity
 export async function getFinderAnalytics() {
   const res = await fetch(`${BASE_URL}/profile/finder-analytics`, {
@@ -213,6 +212,5 @@ export async function getFinderAnalytics() {
   if (!res.ok) {
     throw new Error("Failed to retrieve finder analytics");
   }
-  const data = await res.json();
-  return data.json();
+  return res.json();
 }

@@ -8,6 +8,7 @@ import { getProfile, getMetrics, getRecentJobs } from "../../lib/api";
 import DashboardMetrics from "@/src/components/DashboardMetrics";
 import { BRAND } from "@/src/lib/theme";
 import ActionCard from "@/src/components/ActionCard";
+import Navbar from "@/src/components/NavBar";
 
 interface Stats {
   scraped_count: number;
@@ -81,30 +82,8 @@ export default function Dashboard() {
 
   return (
     <main style={{minHeight: "100vh", background: BRAND.bg, fontFamily: "system-ui, -apple-system, sans-serif"}}>
-      {/* top bar */}
-      <nav style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "1.1rem 2.5rem", borderBottom: `1px solid ${BRAND.border}`,
-        background: BRAND.bg, position: "sticky", top: 0, zIndex: 10,
-      }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: BRAND.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-              <path d="M2 11L5.5 4L9 8L11 5.5L13 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: "0.9375rem", fontWeight: 600, color: BRAND.navy, letterSpacing: "-0.02em" }}>job agent</span>
-        </Link>
-        <div style={{
-          width: 32, height: 32, borderRadius: "50%",
-          background: BRAND.blueLight, color: BRAND.blue,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "0.85rem", fontWeight: 700,
-        }}>
-          {firstName.charAt(0).toUpperCase()}
-        </div>
-      </nav>
-
+      <Navbar firstName = {firstName}></Navbar>
+      
       {/* content */}
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2.5rem 2.5rem 4rem" }}>
         {/* welcome header */}
@@ -124,8 +103,8 @@ export default function Dashboard() {
             <ActionCard
               title="Find Jobs"
               body="Find new listings matching your target roles."
-              cta="Go to scraping"
-              href="/scrape"
+              cta="Go to find roles"
+              href="/find"
               step="Step 1"
               ctaColor={BRAND.blue}
               iconBg={BRAND.blueLight}
