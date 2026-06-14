@@ -336,7 +336,14 @@ def update_job_output(profile_id, job_id, resume_path, cover_letter_path):
 def fetch_all_jobs(profile_id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM jobs WHERE profile_id = %s ORDER BY scraped_at DESC", (profile_id,))
+    cursor.execute("""
+            SELECT id,title, company, location,status, 
+            TO_CHAR(scraped_at::timestamp, 'Mon DD, YYYY') as formatted_time
+            FROM jobs
+            WHERE profile_id = %s
+            ORDER BY id DESC
+            LIMIT %s
+        """, (profile_id, 100))
     rows = cursor.fetchall()
     conn.close()
     return [dict(r) for r in rows]

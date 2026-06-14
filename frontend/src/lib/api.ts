@@ -50,7 +50,7 @@ function getAuthHeaders() {
     };
     }
 
-// gets jobs with a certain status if given or just all jobs for profile
+// gets jobs with a certain status if given or just top 100 jobs for profile
 export async function getJobs(status?: string) {
     const url = status
         ? `${BASE_URL}/jobs?status=${status}`

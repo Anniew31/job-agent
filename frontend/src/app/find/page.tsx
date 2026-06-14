@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/src/lib/auth";
-import { getProfile, getFinderAnalytics, getRecentJobs, scrape } from "@/src/lib/api";
+import { getProfile, getFinderAnalytics, getJobs, scrape, getMetrics, updateBasicProfile } from "@/src/lib/api";
 import { BRAND } from "@/src/lib/theme";
 import Navbar from "@/src/components/NavBar";
 import Chart from "@/src/components/Chart"
@@ -12,14 +12,15 @@ export default function FindingJobsPage() {
     const router = useRouter();
 
     const [profileData, setProfileData] = useState<any>(null);
+    const [metrics, setMetrics] = useState<any>(null);
     const [chartData, setChartData] = useState<any[]>([]);
     const [recentJobs, setRecentJobs] = useState<any[]>([]);
+    const [newKeywordInput, setNewKeywordInput] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isFinding, setIsFinding] = useState(false);
 
     const firstName = profileData?.name?.split(" ")[0] || "there";
-    const pendingJobsCount = recentJobs.filter(job => job.status === "pending").length;
 
     useEffect(() => {
         if (!isLoggedIn()) {
@@ -27,27 +28,38 @@ export default function FindingJobsPage() {
             return;
     }
 
-    async function fetchData() {
-        try {
-            setLoading(true);
-            setError(null);
+        async function fetchData() {
+            try {
+                setLoading(true);
+                setError(null);
 
-            const [profileRes, analyticsRes, jobsRes] = await Promise.all([
-                getProfile(),
-                getFinderAnalytics(),
-                getRecentJobs(),
-            ]);
+                const [profileRes, analyticsRes,jobsRes, metricsRes] = await Promise.all([
+                    getProfile(),      
+                    getFinderAnalytics(),
+                    getJobs(),
+                    getMetrics() 
+                ]);
 
-            setProfileData(profileRes);
-            setChartData(analyticsRes || []);
-            setRecentJobs(jobsRes || []);
-        } catch (err) {
-            setError("Failed to get data.");
-        } finally {
-            setLoading(false);
+                if (profileRes && typeof profileRes.target_roles === "string") {
+                    profileRes.target_roles = profileRes.target_roles
+                        ? profileRes.target_roles.split(", ").filter(Boolean)
+                        : [];
+                } else if (!profileRes.target_roles) {
+                    profileRes.target_roles = [];
+                }
+
+                setProfileData(profileRes);
+                setChartData(analyticsRes || []);
+                setRecentJobs(jobsRes || []);
+                setMetrics(metricsRes);
+            } catch (err) {
+                setError("Failed to synchronize active workspace telemetry layers.");
+            } finally {
+                setLoading(false);
+            }
         }
-    }
-    fetchData();
+
+        fetchData();
     }, [router]);
 
     if (loading) {
@@ -72,29 +84,62 @@ export default function FindingJobsPage() {
         );
     }
 
+    const saveUpdatedRolesToProfile = async (nextRolesList: string[]) => {
+        try {
+            const updatedPayload = {
+                name: profileData.name,
+                phone: profileData.phone,
+                location: profileData.location,
+                role_type: profileData.role_type,
+                work_preference: profileData.work_preference,
+                target_roles: nextRolesList
+            };
+
+            setProfileData({ ...profileData, target_roles: nextRolesList });
+            await updateBasicProfile(updatedPayload);
+        } catch (err) {
+            alert("Could not commit target role choices. Re-syncing target roles...");
+            const resetProfile = await getProfile();
+            if (resetProfile && typeof resetProfile.target_roles === "string") {
+                resetProfile.target_roles = resetProfile.target_roles ? resetProfile.target_roles.split(", ").filter(Boolean) : [];
+            }
+            setProfileData(resetProfile);
+        }
+    };
+
     const handleTriggerScraper = async () => {
         try {
             setIsFinding(true);
-            setError(null);
-
             await scrape();
-
             setTimeout(async () => {
-                const [analyticsRes, jobsRes] = await Promise.all([
-                    getFinderAnalytics(),
-                    getRecentJobs(),
+                const [jobsRes, metricsRes] = await Promise.all([
+                    getJobs(),
+                    getMetrics()
                 ]);
-
-                setChartData(analyticsRes || []);
                 setRecentJobs(jobsRes || []);
+                setMetrics(metricsRes);
                 setIsFinding(false);
-            }, 1500);
-
-        } catch (err: any) {
-            console.error("System error:", err);
-            alert("Unable to find jobs.");
+            }, 2000);
+        } catch (err) {
             setIsFinding(false);
         }
+    };
+
+    const handleAddRolePill = () => {
+        const cleanInput = newKeywordInput.trim();
+        const existingRoles = profileData?.target_roles || [];
+        
+        if (cleanInput && !existingRoles.includes(cleanInput)) {
+            const updatedRoles = [...existingRoles, cleanInput];
+            setNewKeywordInput("");
+            saveUpdatedRolesToProfile(updatedRoles);
+        }
+    };
+
+    const handleRemoveRolePill = (roleToRemove: string) => {
+        const existingRoles = profileData?.target_roles || [];
+        const updatedRoles = existingRoles.filter((role: string) => role !== roleToRemove);
+        saveUpdatedRolesToProfile(updatedRoles);
     };
 
     return (
@@ -129,56 +174,182 @@ export default function FindingJobsPage() {
                         </div>
                     </div>
 
-                    {/* Controls */}
+                    {/* Controls*/}
                     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                         <div style={{ background: "white", padding: "1.75rem", borderRadius: "12px", border: `1px solid ${BRAND.border}` }}>
-                            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "0.95rem", fontWeight: 600, color: BRAND.navy }}>
-                                Search Filters
-                            </h3>
-                            <p style={{ margin: "0 1.5rem 1.5rem 0", fontSize: "0.85rem", color: BRAND.muted, lineHeight: "1.4" }}>
-                                Trigger your job search criteria instantly to find new vacancies matching your target parameters.
-                            </p>
+                            <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em", color: BRAND.muted, fontWeight: 600 }}>
+                                Search Parameters
+                            </span>
+                            <div style={{ marginTop: "1rem" }}>
+                                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: BRAND.navy, marginBottom: "0.6rem" }}>
+                                    Target Roles to Find
+                                </label>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                                    {(profileData?.target_roles || []).map((role: string, index: number) => (
+                                        <div 
+                                            key={index} 
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "4px",
+                                                background: "#eff6ff",
+                                                color: BRAND.blue,
+                                                padding: "0.25rem 0.6rem",
+                                                borderRadius: "16px",
+                                                fontSize: "0.8rem",
+                                                fontWeight: 500,
+                                                border: "1px solid #bfdbfe"
+                                            }}
+                                        >
+                                            <span>{role}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveRolePill(role)}
+                                                style={{
+                                                    background: "none",
+                                                    border: "none",
+                                                    color: BRAND.blue,
+                                                    cursor: "pointer",
+                                                    fontSize: "0.95rem",
+                                                    padding: "0 2px",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    fontWeight: 600
+                                                }}
+                                            >
+                                                &times;
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {(profileData?.target_roles || []).length === 0 && (
+                                        <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.8rem", color: BRAND.muted, fontStyle: "italic" }}>
+                                            No target roles added yet. Type a role below to begin.
+                                        </p>
+                                    )}
+                                </div>
 
-                            <button
-                                onClick={handleTriggerScraper}
-                                disabled={isFinding}
-                                style={{
-                                width: "100%",
-                                padding: "0.75rem",
-                                background: isFinding ? BRAND.border : BRAND.blue,
-                                color: isFinding ? BRAND.muted : "white",
-                                border: "none",
-                                borderRadius: "8px",
-                                fontWeight: 600,
-                                fontSize: "0.9rem",
-                                cursor: isFinding ? "not-allowed" : "pointer",
-                                transition: "background 0.2s ease",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: "10px"
-                                }}
-                            >
-                                {isFinding ? (
-                                    <>
-                                        <span className="spinner" /> 
-                                        Finding jobs...
-                                    </>
-                                ) : ("Discover Jobs")}
-                            </button>
+                                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem" }}>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. React Developer"
+                                        value={newKeywordInput}
+                                        onChange={(e) => setNewKeywordInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                handleAddRolePill();
+                                            }
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            padding: "0.5rem 0.75rem",
+                                            border: `1px solid ${BRAND.border}`,
+                                            borderRadius: "6px",
+                                            fontSize: "0.85rem",
+                                            outline: "none",
+                                            fontFamily: "inherit"
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAddRolePill}
+                                        style={{
+                                            padding: "0.5rem 1rem",
+                                            background: "#f3f4f6",
+                                            color: BRAND.navy,
+                                            border: `1px solid ${BRAND.border}`,
+                                            borderRadius: "6px",
+                                            fontSize: "0.85rem",
+                                            fontWeight: 500,
+                                            cursor: "pointer"
+                                        }}
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={handleTriggerScraper}
+                                    disabled={isFinding}
+                                    style={{
+                                        width: "100%",
+                                        padding: "0.75rem",
+                                        background: isFinding ? BRAND.border : BRAND.blue,
+                                        color: isFinding ? BRAND.muted : "white",
+                                        border: "none",
+                                        borderRadius: "8px",
+                                        fontWeight: 600,
+                                        fontSize: "0.9rem",
+                                        cursor: isFinding ? "not-allowed" : "pointer",
+                                        transition: "background 0.2s ease",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "10px"
+                                    }}
+                                >
+                                    {isFinding ? (
+                                        <>
+                                            <span className="spinner" /> 
+                                            Finding jobs...
+                                        </>
+                                    ) : ("Discover Jobs")}
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Live Stats Card */}
-                        <div style={{ background: "white", padding: "1.25rem 1.5rem", borderRadius: "12px", border: `1px solid ${BRAND.border}`, display: "flex", justifyContent: "between", alignItems: "center" }}>
+                        {/* Live Stats */}
+                        <div style={{ background: "white", padding: "1.25rem 1.5rem", borderRadius: "12px", border: `1px solid ${BRAND.border}` }}>
                             <div>
                                 <span style={{ fontSize: "0.8rem", textTransform: "uppercase", color: BRAND.muted, fontWeight: 600 }}>
                                     Queue Backlog
                                 </span>
                                 <div style={{ fontSize: "1.4rem", fontWeight: 700, color: BRAND.navy, marginTop: "0.25rem" }}>
-                                    {pendingJobsCount} <span style={{ fontSize: "0.85rem", fontWeight: 400, color: BRAND.muted }}>unscored</span>
+                                    {metrics?.scraped_count || 0} <span style={{ fontSize: "0.85rem", fontWeight: 400, color: BRAND.muted }}>unscored</span>
                                 </div>
                             </div>
+                            <button
+                                onClick={() => router.push("/score")}
+                                disabled={(metrics?.scraped_count || 0) === 0}
+                                style={{
+                                    width: "100%",
+                                    padding: "0.65rem",
+                                    marginTop: "1rem",
+                                    background: (metrics?.scraped_count || 0) === 0 ? "#f3f4f6" : BRAND.blue,
+                                    color: (metrics?.scraped_count || 0) === 0 ? BRAND.muted : "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    fontWeight: 600,
+                                    fontSize: "0.85rem",
+                                    cursor: (metrics?.scraped_count || 0) === 0 ? "not-allowed" : "pointer",
+                                    transition: "all 0.15s ease",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "6px",
+                                    boxShadow: (metrics?.scraped_count || 0) === 0 ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
+                                }}
+                                onMouseEnter={(e) => {
+                                    if ((metrics?.scraped_count || 0) > 0) {
+                                        e.currentTarget.style.background = "#2563eb";
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if ((metrics?.scraped_count || 0) > 0) {
+                                        e.currentTarget.style.background = BRAND.blue;
+                                    } else {
+                                        e.currentTarget.style.background = "#f3f4f6";
+                                    }
+                                }}
+                            >
+                                Score Pending Jobs
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
                         </div>
+
                     </div>
                 </div>
 
@@ -197,64 +368,64 @@ export default function FindingJobsPage() {
                         <div style={{ padding: "3rem", textAlign: "center", color: BRAND.muted, fontSize: "0.9rem" }}>
                             No active listings found in your pipeline yet. Click "Find Jobs" to scan for jobs.
                         </div>
-                        ) : (
-                            <div style={{ maxHeight: "400px", overflowY: "auto", overflowX: "auto" }}>
-                                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                                    <thead style={{ position: "sticky", top: 0, background: "#f9fafb", zIndex: 1, boxShadow: "0 1px 0 rgba(0,0,0,0.05)" }}>
-                                        <tr>
-                                            <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Role Title</th>
-                                            <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Company</th>
-                                            <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Discovered</th>
-                                            <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</th>
+                    ) : (
+                        <div style={{ maxHeight: "400px", overflowY: "auto", overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                                <thead style={{ position: "sticky", top: 0, background: "#f9fafb", zIndex: 1, boxShadow: "0 1px 0 rgba(0,0,0,0.05)" }}>
+                                    <tr>
+                                        <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Role Title</th>
+                                        <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Company</th>
+                                        <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Discovered</th>
+                                        <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {recentJobs.map((job: any) => (
+                                        <tr key={job.id} style={{ borderBottom: `1px solid ${BRAND.border}`, transition: "background 0.15s ease" }}>
+                                            <td style={{ padding: "1rem 1.75rem", fontSize: "0.9rem", fontWeight: 500, color: BRAND.navy }}>
+                                                {job.title || "Untitled Role"}
+                                            </td>
+                                            <td style={{ padding: "1rem 1.75rem", fontSize: "0.9rem", color: BRAND.muted }}>
+                                                {job.company || "Unknown Company"}
+                                            </td>
+                                            <td style={{ padding: "1rem 1.75rem", fontSize: "0.85rem", color: BRAND.muted }}>
+                                                {job.formatted_time || job.scraped_at || "Just now"}
+                                            </td>
+                                            <td style={{ padding: "1rem 1.75rem" }}>
+                                                <span style={{
+                                                    display: "inline-block",
+                                                    padding: "0.25rem 0.5rem",
+                                                    borderRadius: "4px",
+                                                    fontSize: "0.75rem",
+                                                    fontWeight: 600,
+                                                    textTransform: "capitalize",
+                                                    background: job.status?.toLowerCase() === "pending" ? BRAND.blueLight : "#f3f4f6",
+                                                    color: job.status?.toLowerCase() === "pending" ? BRAND.blue : BRAND.muted
+                                                }}>
+                                                    {job.status}
+                                                </span>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {recentJobs.map((job: any) => (
-                                            <tr key={job.id} style={{ borderBottom: `1px solid ${BRAND.border}`, transition: "background 0.15s ease" }} className="table-row-hover">
-                                                <td style={{ padding: "1rem 1.75rem", fontSize: "0.9rem", fontWeight: 500, color: BRAND.navy }}>
-                                                    {job.title || "Untitled Role"}
-                                                </td>
-                                                <td style={{ padding: "1rem 1.75rem", fontSize: "0.9rem", color: BRAND.muted }}>
-                                                    {job.company || "Unknown Company"}
-                                                </td>
-                                                <td style={{ padding: "1rem 1.75rem", fontSize: "0.85rem", color: BRAND.muted }}>
-                                                    {job.formatted_time || job.scraped_at || "Just now"}
-                                                </td>
-                                                <td style={{ padding: "1rem 1.75rem" }}>
-                                                    <span style={{
-                                                        display: "inline-block",
-                                                        padding: "0.25rem 0.5rem",
-                                                        borderRadius: "4px",
-                                                        fontSize: "0.75rem",
-                                                        fontWeight: 600,
-                                                        textTransform: "capitalize",
-                                                        background: job.status?.toLowerCase() === "pending" ? BRAND.blueLight : "#f3f4f6",
-                                                        color: job.status?.toLowerCase() === "pending" ? BRAND.blue : BRAND.muted
-                                                    }}>
-                                                        {job.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
             <style jsx>{`
-            .spinner {
-                width: 16px;
-                height: 16px;
-                border: 2px solid rgba(0,0,0,0.1);
-                border-top-color: #666;
-                border-radius: 50%;
-                animation: spin 0.8s linear infinite;
-            }
-            @keyframes spin {
-                to { transform: rotate(360deg); }
-            }
+                .spinner {
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(0,0,0,0.1);
+                    border-top-color: #666;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
             `}</style>
         </main>
-  );
+    );
 }
