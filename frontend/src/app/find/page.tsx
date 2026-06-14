@@ -6,6 +6,7 @@ import { isLoggedIn } from "@/src/lib/auth";
 import { getProfile, getFinderAnalytics, getRecentJobs, scrape } from "@/src/lib/api";
 import { BRAND } from "@/src/lib/theme";
 import Navbar from "@/src/components/NavBar";
+import Chart from "@/src/components/Chart"
 
 export default function FindingJobsPage() {
     const router = useRouter();
@@ -115,12 +116,16 @@ export default function FindingJobsPage() {
                 
                     {/* Trend Line Graph Section */}
                     <div style={{ background: "white", padding: "1.75rem", borderRadius: "12px", border: `1px solid ${BRAND.border}` }}>
-                        <h3 style={{ margin: "0 0 1.5rem 0", fontSize: "0.95rem", fontWeight: 600, color: BRAND.navy }}>
-                            Yield Frequency (7 Days)
-                        </h3>
-                        
-                        <div style={{ height: "220px", display: "flex", alignItems: "center", justifyContent: "center", background: "#f9fafb", borderRadius: "8px", border: `1px dashed ${BRAND.border}` }}>
-                            <p style={{ color: BRAND.muted, fontSize: "0.85rem" }}>[ SVG Trend Line Vector Grid Goes Here ]</p>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                            <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600, color: BRAND.navy }}>
+                                History of Found Jobs
+                            </h3>
+                            <span style={{ fontSize: "0.8rem", color: BRAND.muted, background: "#f3f4f6", padding: "2px 8px", borderRadius: "4px", fontWeight: 500 }}>
+                                7-Day Timeline
+                            </span>
+                        </div>
+                        <div style={{ padding: "0.5rem 0" }}>
+                            <Chart data={chartData} />
                         </div>
                     </div>
 
@@ -188,60 +193,55 @@ export default function FindingJobsPage() {
                         </p>
                     </div>
 
-                    <div style={{ overflowX: "auto" }}>
-                        {recentJobs.length === 0 ? (
+                    {recentJobs.length === 0 ? (
                         <div style={{ padding: "3rem", textAlign: "center", color: BRAND.muted, fontSize: "0.9rem" }}>
                             No active listings found in your pipeline yet. Click "Find Jobs" to scan for jobs.
                         </div>
                         ) : (
-                        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                            <thead>
-                                <tr style={{ background: "#f9fafb", borderBottom: `1px solid ${BRAND.border}` }}>
-                                    <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Role Title</th>
-                                    <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Company</th>
-                                    <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Discovered</th>
-                                    <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {recentJobs.slice(0, 10).map((job: any) => (
-                                    <tr key={job.id} style={{ borderBottom: `1px solid ${BRAND.border}`, transition: "background 0.15s ease" }} className="table-row-hover">
-                                    <td style={{ padding: "1rem 1.75rem", fontSize: "0.9rem", fontWeight: 500, color: BRAND.navy }}>
-                                        {job.title || "Untitled Role"}
-                                    </td>
-                                    
-                                    <td style={{ padding: "1rem 1.75rem", fontSize: "0.9rem", color: BRAND.muted }}>
-                                        {job.company || "Unknown Company"}
-                                    </td>
-                                    
-                                    <td style={{ padding: "1rem 1.75rem", fontSize: "0.85rem", color: BRAND.muted }}>
-                                        {job.formatted_time || job.scraped_at || "Just now"}
-                                    </td>
-                                    
-                                    <td style={{ padding: "1rem 1.75rem" }}>
-                                        <span style={{
-                                            display: "inline-block",
-                                            padding: "0.25rem 0.5rem",
-                                            borderRadius: "4px",
-                                            fontSize: "0.75rem",
-                                            fontWeight: 600,
-                                            textTransform: "capitalize",
-                                            background: job.status === "pending" ? BRAND.blueLight : "#f3f4f6",
-                                            color: job.status === "pending" ? BRAND.blue : BRAND.muted
-                                        }}>
-                                            {job.status}
-                                        </span>
-                                    </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                            <div style={{ maxHeight: "400px", overflowY: "auto", overflowX: "auto" }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                                    <thead style={{ position: "sticky", top: 0, background: "#f9fafb", zIndex: 1, boxShadow: "0 1px 0 rgba(0,0,0,0.05)" }}>
+                                        <tr>
+                                            <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Role Title</th>
+                                            <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Company</th>
+                                            <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Discovered</th>
+                                            <th style={{ padding: "0.85rem 1.75rem", fontSize: "0.75rem", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {recentJobs.map((job: any) => (
+                                            <tr key={job.id} style={{ borderBottom: `1px solid ${BRAND.border}`, transition: "background 0.15s ease" }} className="table-row-hover">
+                                                <td style={{ padding: "1rem 1.75rem", fontSize: "0.9rem", fontWeight: 500, color: BRAND.navy }}>
+                                                    {job.title || "Untitled Role"}
+                                                </td>
+                                                <td style={{ padding: "1rem 1.75rem", fontSize: "0.9rem", color: BRAND.muted }}>
+                                                    {job.company || "Unknown Company"}
+                                                </td>
+                                                <td style={{ padding: "1rem 1.75rem", fontSize: "0.85rem", color: BRAND.muted }}>
+                                                    {job.formatted_time || job.scraped_at || "Just now"}
+                                                </td>
+                                                <td style={{ padding: "1rem 1.75rem" }}>
+                                                    <span style={{
+                                                        display: "inline-block",
+                                                        padding: "0.25rem 0.5rem",
+                                                        borderRadius: "4px",
+                                                        fontSize: "0.75rem",
+                                                        fontWeight: 600,
+                                                        textTransform: "capitalize",
+                                                        background: job.status?.toLowerCase() === "pending" ? BRAND.blueLight : "#f3f4f6",
+                                                        color: job.status?.toLowerCase() === "pending" ? BRAND.blue : BRAND.muted
+                                                    }}>
+                                                        {job.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
-                    </div>
                 </div>
             </div>
-
             <style jsx>{`
             .spinner {
                 width: 16px;
