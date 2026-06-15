@@ -164,3 +164,8 @@ def get_finder_analytics(current_user: AuthUser = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Invalid user session")
     return get_finder_chart_data(current_user.id)
     
+@app.get("/profile/scores-data")
+def get_scores_data(current_user: AuthUser = Depends(get_current_user)):
+    if current_user is None or current_user.id is None:
+        raise HTTPException(status_code=400, detail="Invalid user")
+    return get_histogram_scores(current_user.id)

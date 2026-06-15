@@ -214,3 +214,15 @@ export async function getFinderAnalytics() {
   }
   return res.json();
 }
+
+// gets lifetime data for how each match scored
+export async function getScoreData() {
+  const res = await fetch(`${BASE_URL}/profile/scores-data`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to retrieve scores data");
+  }
+  return res.json();
+}

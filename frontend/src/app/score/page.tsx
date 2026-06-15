@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/src/lib/auth";
-import { getMetrics, getJobs, score, getProfile, updatePreferences} from "@/src/lib/api";
+import { getMetrics, getJobs, score, getProfile, updatePreferences, getScoreData} from "@/src/lib/api";
 import { BRAND } from "@/src/lib/theme";
 import Navbar from "@/src/components/NavBar";
+import Histogram from "@/src/components/Histogram"
 
 export default function ScorePage() {
     const router = useRouter();
@@ -18,6 +19,7 @@ export default function ScorePage() {
     const [threshold, setThreshold] = useState(4);
     const [dealBreakers, setDealBreakers] = useState<string[]>([]);
     const [profile, setProfile] = useState<any>(null)
+    const [histogramData, setHistogramData] = useState<any>(null);
 
     const firstName = "";
 
@@ -30,10 +32,11 @@ export default function ScorePage() {
         async function fetchData() {
             try {
                 setLoading(true);
-                const [metricsRes, jobsRes, profileRes] = await Promise.all([
+                const [metricsRes, jobsRes, profileRes, histogramRes] = await Promise.all([
                     getMetrics(),
                     getJobs("scored"),
                     getProfile(),
+                    getScoreData()
                 ]);
                 
                 setMetrics(metricsRes);
@@ -41,6 +44,7 @@ export default function ScorePage() {
                 setThreshold(profileRes.score_threshold ?? 4);
                 setDealBreakers(profileRes.deal_breakers ?? []);
                 setProfile(profileRes || []);
+                setHistogramData(histogramRes || []);
             } catch {
                 setError("Failed to load scoring data.");
             } finally {
@@ -148,14 +152,9 @@ export default function ScorePage() {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                             <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600, color: BRAND.navy }}>Score Distribution</h3>
                             <span style={{ fontSize: "0.8rem", color: BRAND.muted, background: BRAND.bg, padding: "2px 8px", borderRadius: "4px", fontWeight: 500 }}>1 – 10</span>
-                        </div>
-                        {/* placeholder — chart component goes here */}
-                        <div style={{
-                            height: 200, borderRadius: "8px",
-                            background: BRAND.bg, border: `1px dashed ${BRAND.border}`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>
-                            <p style={{ color: BRAND.faint, fontSize: "0.85rem" }}>Score histogram — coming next</p>
+                        </div>    
+                        <div style={{ height: 200 }}>
+                            <Histogram scores={histogramData} />
                         </div>
                     </div>
 

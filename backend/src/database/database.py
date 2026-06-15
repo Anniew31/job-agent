@@ -1,4 +1,5 @@
 import os
+from typing import Any, cast
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
@@ -380,5 +381,30 @@ def get_finder_chart_data(profile_id: int) -> list:
     except Exception as db_err:
         return []
     finally:
+        cursor.close()
+        conn.close()
+
+# returns stats for the histogram scores for all-time
+def get_histogram_scores(profile_id: int) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try: 
+        cursor.execute("""
+            SELECT score, COUNT(*) as count
+            FROM jobs
+            WHERE profile_id = %s AND score BETWEEN 1 AND 10
+            GROUP BY score
+        """, (profile_id,))
+        rows = cast(list[dict[str, Any]], cursor.fetchall())
+        db_results = {}
+        if rows:
+            for row in rows:
+                score_val = row.get("score")
+                count_val = row.get("count")
+                db_results[int(score_val)] = int(count_val) # type: ignore
+        return {score: db_results.get(score, 0) for score in range(1, 11)}
+    except Exception as db_er:
+        return {score: 0 for score in range(1, 11)}
+    finally: 
         cursor.close()
         conn.close()
