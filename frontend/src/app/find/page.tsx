@@ -36,7 +36,7 @@ export default function FindingJobsPage() {
                 const [profileRes, analyticsRes,jobsRes, metricsRes] = await Promise.all([
                     getProfile(),      
                     getFinderAnalytics(),
-                    getJobs(),
+                    getJobs("pending"),
                     getMetrics() 
                 ]);
 
@@ -366,7 +366,7 @@ export default function FindingJobsPage() {
 
                     {recentJobs.length === 0 ? (
                         <div style={{ padding: "3rem", textAlign: "center", color: BRAND.muted, fontSize: "0.9rem" }}>
-                            No active listings found in your pipeline yet. Click "Find Jobs" to scan for jobs.
+                            No listings with "pending" status found in your pipeline. Click "Find Jobs" to scan for jobs.
                         </div>
                     ) : (
                         <div style={{ maxHeight: "400px", overflowY: "auto", overflowX: "auto" }}>
