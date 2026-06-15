@@ -145,6 +145,7 @@ class Profile(BaseModel):
     salary_type: Literal["hourly", "annual"]
 
     deal_breakers: list[str] = []
+    score_threshold: Optional[int] = 4
 
     @field_validator("email")
     def _email(cls, v):
@@ -209,10 +210,17 @@ class PreferencesRequest(BaseModel):
     salary_floor: Optional[int] = None
     salary_type: Optional[Literal["hourly", "annual"]] = None
     deal_breakers: list[str] = []
+    score_threshold: Optional[int] = 4
 
     @field_validator("salary_floor")
     def _salary(cls, v):
         return validate_salary(v)
+    
+    @field_validator("score_threshold")
+    def _threshold(cls, v):
+        if v is not None and not (1 <= v <= 9):
+            raise ValueError("score threshold must be between 1 and 9")
+        return v
     
 class AuthUser(BaseModel):
     id: int

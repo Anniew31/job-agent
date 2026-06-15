@@ -1,5 +1,4 @@
 from src.database.database import *
-from src.services.config import MAX_JOBS_PER_RUN, SCORE_THRESHOLD
 from src.services.scorer.llm import score_job
 from src.services.scorer.prompt import build_prompt
 
@@ -8,21 +7,17 @@ def run_scorer(profile_id: int):
     profile = get_profile_by_id(profile_id)
 
     if profile is None:
-        print(f"No profile found for id {profile_id}")
         return 0
     
-    pending_jobs = fetch_jobs_by_status(profile.id, "pending")[:MAX_JOBS_PER_RUN]
-    print(f"\nScoring {len(pending_jobs)} pending jobs...\n")
+    threshold = profile.score_threshold if profile.score_threshold is not None else 4
+    pending_jobs = fetch_jobs_by_status(profile.id, "pending")
     
     for job in pending_jobs:
         job = dict(job)
-        print(f"Scoring: {job.get('title')} at {job.get('company')}...")
-        
         prompt = build_prompt(profile, job)
         result = score_job(prompt)
         
         if result is None:
-            print(f"skipping — scorer returned nothing")
             continue
         
         score = result.get("score", 0)
@@ -33,10 +28,7 @@ def run_scorer(profile_id: int):
         update_job_score(profile.id, job.get("id"), score, reasoning)
         if deal_breaker:
             update_job_status(profile.id, job.get("id"), "rejected")
-            print(deal_breaker_reason)
-        elif score < SCORE_THRESHOLD: 
+        elif score < threshold: 
             update_job_status(profile.id, job.get("id"), "rejected")
-            print(f'{score} was too low')
         else: 
-            update_job_status(profile.id, job.get("id"), "reviewed")
-            print(f'AI reviewed it and found a fit of {score}/10. {reasoning}')
+            update_job_status(profile.id, job.get("id"), "scored")

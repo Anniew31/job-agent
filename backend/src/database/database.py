@@ -40,6 +40,7 @@ def init_db():
             salary_type     TEXT,
             deal_breakers   TEXT,
             created_at      TIMESTAMP,
+            score_threshold INTEGER DEFAULT 4,
             profile_complete BOOLEAN DEFAULT FALSE
         )
     """)
@@ -189,8 +190,8 @@ def update_profile_preference(profile_id: int, request: PreferencesRequest):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        UPDATE profiles SET salary_floor = %s, salary_type = %s, deal_breakers = %s WHERE id = %s
-    """, (request.salary_floor, request.salary_type, json.dumps(request.deal_breakers), profile_id))
+        UPDATE profiles SET salary_floor = %s, salary_type = %s, deal_breakers = %s, score_threshold = %s WHERE id = %s
+    """, (request.salary_floor, request.salary_type, json.dumps(request.deal_breakers), request.score_threshold, profile_id))
     conn.commit()
     conn.close()
     return cursor.rowcount

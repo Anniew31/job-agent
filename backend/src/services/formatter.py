@@ -1,19 +1,21 @@
-# formats experience nicely to give to llm
-def format_experience(experience: list) -> str:
+from typing import List
+from src.models import WorkExperience, Project 
+
+def format_experience(experience: List[WorkExperience]) -> str:
     entries = []
     for job in experience:
-        end = job.get("end_date") if job.get("end_date") else "present"
-        header = f"{job['company']} — {job['position']} ({job['start_date']} - {end})"
-        bullets = "\n".join([f"• {b}" for b in job["bullets"]])
+        end = job.end_date if job.end_date else "present"
+        header = f"{job.company} — {job.position} ({job.start_date} - {end})"
+        bullets = "\n".join([f"• {b}" for b in job.bullets])
+        
         entry = header + "\n" + bullets
         entries.append(entry)
     return "\n\n".join(entries)
 
-# formats projects nicely for prompting
-def format_projects(projects: list) -> str:
+def format_projects(projects: List[Project]) -> str:
     entries = []
-    for job in projects:
-        bullets = "\n".join([f"•{b}" for b in job["bullets"]])
-        entry = job["name"] + "\n" + bullets 
+    for project in projects:
+        bullets = "\n".join([f"• {b}" for b in project.bullets])
+        entry = project.name + "\n" + bullets 
         entries.append(entry)
     return "\n\n".join(entries)
