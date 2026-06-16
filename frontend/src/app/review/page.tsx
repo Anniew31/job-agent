@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BRAND } from "@/src/lib/theme";
 import Navbar from "@/src/components/NavBar";
+import router from "next/router";
+import { isLoggedIn } from "@/src/lib/auth";
+import { getReviewData} from "@/src/lib/api";
 
 const MOCK_JOBS = [
     { id: 1, title: "Senior Software Engineer", company: "Stripe", location: "Remote", pay: "$85/hr", score: 9, reasoning: "Strong React & Next.js matching profile preferences." },
@@ -13,16 +16,38 @@ const MOCK_JOBS = [
 export default function ReviewMatchesPage() {
     const [jobs] = useState(MOCK_JOBS);
     const [currentIndex, setCurrentIndex] = useState(0);
-    
     const [sessionAccepted, setSessionAccepted] = useState(0);
     const [sessionPassed, setSessionPassed] = useState(0);
     const [decisions, setDecisions] = useState<{ title: string; company: string; accepted: boolean }[]>([]);
-
-    const allTimeStats = { reviewed: 142, accepted: 48, passed: 94 };
+    const [allTimeStats, setAllTimeStats] = useState<any>([]);
     const accepted = sessionAccepted;
-
     const currentCard = jobs[currentIndex];
     const remainingCount = jobs.length - currentIndex;
+
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!isLoggedIn()) {
+            router.push("/login");
+            return;
+        }
+
+        async function fetchData() {
+            try {
+                setLoading(true);
+                const [reviewRes] = await Promise.all([
+                    getReviewData()
+                ]);     
+                setAllTimeStats(reviewRes)
+            } catch {
+                setError("Failed to load scoring data.");
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [router]);
 
     const handleDecision = (accepted: boolean) => {
         if (!currentCard) return;
@@ -44,7 +69,6 @@ export default function ReviewMatchesPage() {
 
             <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2.5rem 2.5rem 4rem" }}>
                 
-                {/* ─── PAGE HEADER ─── */}
                 <div style={{ marginBottom: "2rem" }}>
                     <h1 style={{ fontSize: "1.6rem", fontWeight: 700, color: BRAND.navy, margin: "0 0 0.25rem" }}>
                         Review Matches
@@ -54,9 +78,8 @@ export default function ReviewMatchesPage() {
                     </p>
                 </div>
 
-                {/* ─── ALL TIME STATS SECTION (3 LARGE BOXES) ─── */}
+                {/* All Time Stats */}
                 <div style={{ display: "flex", gap: "1.5rem", marginBottom: "2.5rem" }}>
-                    {/* Box 1: Reviewed */}
                     <div style={{ 
                         flex: 1, background: BRAND.surface, border: `1px solid ${BRAND.border}`, 
                         borderRadius: "12px", padding: "1.5rem", boxShadow: "0 1px 3px rgba(0,0,0,0.01)"
@@ -65,11 +88,10 @@ export default function ReviewMatchesPage() {
                             ALL-TIME REVIEWED
                         </div>
                         <div style={{ fontSize: "1.8rem", fontWeight: 700, color: BRAND.blue }}>
-                            {allTimeStats.reviewed + currentIndex}
+                            {allTimeStats.total_reviewed}
                         </div>
                     </div>
 
-                    {/* Box 2: Accepted */}
                     <div style={{ 
                         flex: 1, background: BRAND.surface, border: `1px solid ${BRAND.border}`, 
                         borderRadius: "12px", padding: "1.5rem", boxShadow: "0 1px 3px rgba(0,0,0,0.01)"
@@ -78,11 +100,10 @@ export default function ReviewMatchesPage() {
                             TOTAL ACCEPTED
                         </div>
                         <div style={{ fontSize: "1.8rem", fontWeight: 700, color: BRAND.green }}>
-                            {allTimeStats.accepted + sessionAccepted}
+                            {allTimeStats.total_accepted}
                         </div>
                     </div>
 
-                    {/* Box 3: Passed */}
                     <div style={{ 
                         flex: 1, background: BRAND.surface, border: `1px solid ${BRAND.border}`, 
                         borderRadius: "12px", padding: "1.5rem", boxShadow: "0 1px 3px rgba(0,0,0,0.01)"
@@ -91,7 +112,7 @@ export default function ReviewMatchesPage() {
                             TOTAL PASSED
                         </div>
                         <div style={{ fontSize: "1.8rem", fontWeight: 700, color: BRAND.amber}}>
-                            {allTimeStats.passed + sessionPassed}
+                            {allTimeStats.total_rejected}
                         </div>
                     </div>
                 </div>

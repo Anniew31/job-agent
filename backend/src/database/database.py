@@ -307,7 +307,7 @@ def fetch_jobs_by_status(profile_id, status):
     conn.close()
     return [dict(r) for r in rows]
 
-# update job status to either reviewed or rejected
+# update job status to either reviewed, rejected, accepted
 def update_job_status(profile_id, job_id, status):
     conn = get_connection()
     cursor = conn.cursor()
@@ -406,5 +406,35 @@ def get_histogram_scores(profile_id: int) -> dict:
     except Exception as db_er:
         return {score: 0 for score in range(1, 11)}
     finally: 
+        cursor.close()
+        conn.close()
+
+# gets the stats used in the reviewing page (reviewd, accepted, and rejected)
+def get_review_lifetime_stats(profile_id: int) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor() 
+    try:
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(CASE WHEN status IN ('accepted', 'rejected') THEN 1 ELSE 0 END), 0) as total_reviewed,
+                COALESCE(SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END), 0) as total_accepted,
+                COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) as total_rejected
+            FROM jobs 
+            WHERE profile_id = %s
+        """, (profile_id,))
+        
+        row = cursor.fetchone()
+        if row:
+            data = dict(row)
+            return {
+                "total_reviewed": int(data.get("total_reviewed", 0)),
+                "total_accepted": int(data.get("total_accepted", 0)),
+                "total_rejected": int(data.get("total_rejected", 0))
+            }
+            
+        return {"total_reviewed": 0, "total_accepted": 0, "total_rejected": 0}
+    except Exception as e:
+        return {"total_reviewed": 0, "total_accepted": 0, "total_rejected": 0}
+    finally:
         cursor.close()
         conn.close()

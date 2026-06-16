@@ -169,3 +169,9 @@ def get_scores_data(current_user: AuthUser = Depends(get_current_user)):
     if current_user is None or current_user.id is None:
         raise HTTPException(status_code=400, detail="Invalid user")
     return get_histogram_scores(current_user.id)
+
+@app.post("/profile/review-data")
+def review_action(current_user: AuthUser = Depends(get_current_user)):
+    if current_user is None or current_user.id is None:
+        raise HTTPException(status_code=400, detail="Invalid user")
+    return get_review_lifetime_stats(current_user.id)

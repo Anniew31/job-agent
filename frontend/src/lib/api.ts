@@ -226,3 +226,15 @@ export async function getScoreData() {
   }
   return res.json();
 }
+
+// gets lifetime review data
+export async function getReviewData() {
+  const res = await fetch(`${BASE_URL}/profile/review-data`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to retrieve review data");
+  }
+  return res.json();
+}
