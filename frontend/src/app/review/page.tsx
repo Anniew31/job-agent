@@ -7,6 +7,7 @@ import router from "next/router";
 import { isLoggedIn } from "@/src/lib/auth";
 import { getReviewData, getJobs, updateJobStatus } from "@/src/lib/api";
 import SwipeCard from "@/src/components/SwipeCard";
+import Link from "next/link";
 
 export default function ReviewMatchesPage() {
     const [jobs, setJobs] = useState<any>([]);
@@ -255,17 +256,25 @@ export default function ReviewMatchesPage() {
                                 Ready to tailor your resume and create custom cover letters?
                             </p>
                         </div>
-                        <button 
-                            disabled={totalReadyToTailor === 0}
+                        <Link 
+                            href="/tailor"
                             style={{ 
-                                padding: "0.65rem 1.5rem", borderRadius: "8px", border: "none", 
-                                background: totalReadyToTailor === 0 ? BRAND.border : BRAND.blue, 
-                                color: totalReadyToTailor === 0 ? BRAND.muted : "white", fontSize: "0.875rem", fontWeight: 600, 
-                                cursor: totalReadyToTailor === 0 ? "not-allowed" : "pointer" 
+                                textDecoration: "none",
+                                padding: "0.65rem 1.5rem", 
+                                borderRadius: "8px", 
+                                background: BRAND.blue, 
+                                color: "white", 
+                                fontSize: "0.875rem", 
+                                fontWeight: 600, 
+                                cursor: "pointer",
+                                display: "inline-block",
+                                transition: "opacity 0.2s ease"
                             }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
                         >
                             Ready to tailor →
-                        </button>
+                        </Link>
                     </div>
                     </>
                 )}
