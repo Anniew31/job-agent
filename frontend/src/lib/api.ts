@@ -238,3 +238,19 @@ export async function getReviewData() {
   }
   return res.json();
 }
+
+// updates a job's status
+export async function updateJobStatus(data: any) {
+    const res = await fetch(`${BASE_URL}/job/update-reviewed`, {
+        method: "PATCH",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+        throw new Error("Failed to update job status");
+    }
+    return await res.json();
+}

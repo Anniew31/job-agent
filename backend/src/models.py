@@ -229,3 +229,7 @@ class AuthUser(BaseModel):
     @field_validator("email")
     def _email(cls, v):
         return validate_email(v)
+    
+class JobReviewed(BaseModel):
+    job_id: int
+    accepted: bool

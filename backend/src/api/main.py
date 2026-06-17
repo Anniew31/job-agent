@@ -175,3 +175,15 @@ def review_action(current_user: AuthUser = Depends(get_current_user)):
     if current_user is None or current_user.id is None:
         raise HTTPException(status_code=400, detail="Invalid user")
     return get_review_lifetime_stats(current_user.id)
+
+@app.patch("/job/update-reviewed")
+def update_reviewed(request: JobReviewed, current_user: AuthUser = Depends(get_current_user)):
+    if current_user is None or current_user.id is None:
+        raise HTTPException(status_code=400, detail="Invalid user")
+    if request.accepted:   
+       updated = update_job_status(current_user.id, request.job_id, "accepted")
+    else: 
+        updated = update_job_status(current_user.id, request.job_id, "rejected")
+    if updated == 0:
+        raise HTTPException(status_code=404, detail="Failed to update")
+    return updated

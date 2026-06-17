@@ -314,6 +314,7 @@ def update_job_status(profile_id, job_id, status):
     cursor.execute("UPDATE jobs SET status = %s WHERE id = %s AND profile_id = %s", (status, job_id, profile_id,))
     conn.commit()
     conn.close()
+    return cursor.rowcount
 
 # update the score and reasoning given by ai 
 def update_job_score(profile_id, job_id, score, reasoning):
