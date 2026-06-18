@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/src/lib/auth";
-import { getJobs, tailor } from "@/src/lib/api";
+import { getJobs, tailor, updateDocuments, getTailorStatus } from "@/src/lib/api";
 import { BRAND } from "@/src/lib/theme";
 import Navbar from "@/src/components/NavBar";
 
@@ -26,9 +26,10 @@ export default function TailorPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]);
-  const [descExpanded, setDescExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savingMessage, setIsSavingMessage] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const job = jobs[jobIndex] ?? null;
 
@@ -55,28 +56,85 @@ export default function TailorPage() {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
+  useEffect(() => {
+    if (job) {
+      const hasResume = !!job.resume_text;
+      const hasCover = !!job.cover_letter_text;
+      setResumeText(job.resume_text ?? "");
+      setCoverText(job.cover_letter_text ?? "");
+      setGenerated(hasResume && hasCover);
+    } else {
+      setResumeText("");
+      setCoverText("");
+      setGenerated(false);
+    }
+  }, [jobIndex, jobs, job]);
+
   async function handleGenerate() {
     if (!job) return;
     setIsGenerating(true);
     setGenerated(false);
     setLoadingMsg(LOADING_MESSAGES[0]);
+
     try {
-      await tailor();
-      const res = await getJobs("accepted");
-      setJobs(res || []);
-      const updated = res?.find((j: any) => j.id === job.id);
-      setResumeText(updated?.resume_text ?? "");
-      setCoverText(updated?.cover_letter_text ?? "");
+      await tailor(job.id);
+
+      let attempts = 0;
+      const maxAttempts = 20;
+
+      const checkStatus = async (): Promise<any> => {
+        if (attempts >= maxAttempts) throw new Error("Generation timed out");
+        attempts++;
+
+        const status = await getTailorStatus(job.id);
+
+        if (status.ready) {
+          return status;
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          return checkStatus();
+        }
+      };
+
+      const result = await checkStatus();
+
+      const resJobs = await getJobs("accepted");
+      setJobs(resJobs || []);
+      setResumeText(result.resume_text);
+      setCoverText(result.cover_letter_text);
       setGenerated(true);
-    } catch {
-      alert("Generation failed — please try again");
+    } catch (error) {
+      console.error(error);
+      alert("Generation failed or timed out — please try again");
     } finally {
       setIsGenerating(false);
     }
   }
 
-  function handlePrev() { if (jobIndex > 0) { setJobIndex(j => j - 1); setGenerated(false); } }
-  function handleNext() { if (jobIndex < jobs.length - 1) { setJobIndex(j => j + 1); setGenerated(false); } }
+  async function handleSave() {
+    if (!job) return;
+    setIsSaving(true);
+    try {
+      await updateDocuments(job.id, resumeText, coverText);
+      setJobs(prevJobs => 
+        prevJobs.map((j, idx) => 
+          idx === jobIndex 
+            ? { ...j, resume_text: resumeText, cover_letter_text: coverText } 
+            : j
+        )
+      );
+      setIsSavingMessage({ message: "Changes saved successfully! 🎉", type: "success" });
+      setTimeout(() => setIsSavingMessage(null), 3000);
+    } catch (error) {
+      setIsSavingMessage({ message: "Failed to save changes. Please try again.", type: "error" });
+      setTimeout(() => setIsSavingMessage(null), 4000);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handlePrev() { if (jobIndex > 0) { setJobIndex(j => j - 1); } }
+  function handleNext() { if (jobIndex < jobs.length - 1) { setJobIndex(j => j + 1); } }
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: BRAND.bg, display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -105,6 +163,27 @@ export default function TailorPage() {
             Generate a tailored resume and cover letter for each accepted job.
           </p>
         </div>
+
+        {savingMessage && (
+          <div style={{
+            marginBottom: "1.5rem",
+            padding: "0.875rem 1.25rem",
+            borderRadius: "8px",
+            fontSize: "0.85rem",
+            fontWeight: 500,
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: savingMessage.type === "success" ? BRAND.greenBg : "#FDF2F2", // Fallback light red if color missing
+            color: savingMessage.type === "success" ? BRAND.green : BRAND.red,
+            border: `1px solid ${savingMessage.type === "success" ? BRAND.green : BRAND.red}`,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+            transition: "all 0.3s ease"
+          }}>
+            <span>{savingMessage.type === "success" ? "✓" : "⚠️"}</span>
+            <span>{savingMessage.message}</span>
+          </div>
+        )}
 
         {jobs.length === 0 ? (
           <div style={{ background: BRAND.surface, borderRadius: "12px", border: `1px solid ${BRAND.border}`, padding: "3rem", textAlign: "center" }}>
@@ -201,7 +280,7 @@ export default function TailorPage() {
                   </div>
                 ) : (
                   <button onClick={handleGenerate} style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", border: "none", background: BRAND.navy, color: "#fff", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "system-ui, sans-serif" }}>
-                    ✨ Generate tailored assets
+                    Generate tailored assets
                   </button>
                 )}
               </div>
@@ -245,15 +324,29 @@ export default function TailorPage() {
                       borderBottom: activeTab === tab ? `2px solid ${BRAND.navy}` : "2px solid transparent",
                       fontFamily: "system-ui, sans-serif",
                     }}>
-                      {tab === "resume" ? "Resume bullets" : "Cover letter"}
+                      {tab === "resume" ? "Resume Bullets" : "Cover letter"}
                     </button>
                   ))}
                 </div>
 
                 {generated && (
                   <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button style={{ padding: "0.4rem 0.875rem", borderRadius: "6px", border: `1px solid ${BRAND.border}`, background: BRAND.surface, color: BRAND.navy, fontSize: "0.78rem", fontWeight: 500, cursor: "pointer", fontFamily: "system-ui, sans-serif" }}>
-                      💾 Save
+                    <button 
+                      onClick={handleSave} 
+                      disabled={isSaving}
+                      style={{ 
+                        padding: "0.4rem 0.875rem", 
+                        borderRadius: "6px", 
+                        border: `1px solid ${BRAND.border}`, 
+                        background: isSaving ? BRAND.bg : BRAND.surface,
+                        color: isSaving ? BRAND.muted : BRAND.navy, 
+                        fontSize: "0.78rem", 
+                        fontWeight: 500, 
+                        cursor: isSaving ? "not-allowed" : "pointer", 
+                        fontFamily: "system-ui, sans-serif"
+                      }}
+                    >
+                      {isSaving ? "⏳ Saving..." : "💾 Save Changes"}
                     </button>
                     <button style={{ padding: "0.4rem 0.875rem", borderRadius: "6px", border: "none", background: BRAND.navy, color: "#fff", fontSize: "0.78rem", fontWeight: 500, cursor: "pointer", fontFamily: "system-ui, sans-serif" }}>
                       📥 Download PDF
@@ -262,10 +355,28 @@ export default function TailorPage() {
                 )}
               </div>
 
+              {generated && (
+                <div style={{ 
+                  background: BRAND.bg, 
+                  padding: "0.75rem 1.5rem", 
+                  borderBottom: `1px solid ${BRAND.border}`, 
+                  fontSize: "0.8rem", 
+                  color: BRAND.muted,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}>
+                  <span>💡</span>
+                  <span>
+                    Feel free to directly rewrite or tweak any text below. Make your changes, hit <strong>Save Changes</strong>, and click <strong>Download PDF</strong> once you're satisfied!
+                  </span>
+                </div>
+              )}
+
               {/* editor area */}
               <div style={{ padding: "1.5rem" }}>
                 {!generated ? (
-                  <div style={{ minHeight: 480, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem" }}>
+                  <div style={{ minHeight: 540, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem" }}>
                     <div style={{ width: 44, height: 44, borderRadius: "50%", background: BRAND.bg, border: `1px solid ${BRAND.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.25rem" }}>✨</div>
                     <p style={{ fontSize: "0.9rem", fontWeight: 600, color: BRAND.navy, margin: 0 }}>No documents yet</p>
                     <p style={{ fontSize: "0.8rem", color: BRAND.muted, margin: 0, textAlign: "center", maxWidth: 280 }}>
@@ -277,7 +388,7 @@ export default function TailorPage() {
                     value={activeTab === "resume" ? resumeText : coverText}
                     onChange={(e) => activeTab === "resume" ? setResumeText(e.target.value) : setCoverText(e.target.value)}
                     style={{
-                      width: "100%", minHeight: 480, padding: "0.875rem",
+                      width: "100%", minHeight: 675, padding: "0.875rem",
                       borderRadius: "8px", border: `1px solid ${BRAND.border}`,
                       background: BRAND.bg, color: BRAND.navy,
                       fontSize: "0.875rem", lineHeight: 1.7,

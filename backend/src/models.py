@@ -233,3 +233,7 @@ class AuthUser(BaseModel):
 class JobReviewed(BaseModel):
     job_id: int
     accepted: bool
+
+class DocumentUpdateRequest(BaseModel):
+    resume_text: str
+    cover_letter_text: str

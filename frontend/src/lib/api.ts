@@ -82,11 +82,10 @@ export async function scrape() {
   return await res.json();
 }
 
-// sends a request to tailor resume and cover letter
-export async function tailor() {
-  const res = await fetch(`${BASE_URL}/tailor`, {
+export async function tailor(jobId: number) {
+  const res = await fetch(`${BASE_URL}/tailor/${jobId}`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: getAuthHeaders()
   });
 
   if (!res.ok) {
@@ -253,4 +252,25 @@ export async function updateJobStatus(data: any) {
         throw new Error("Failed to update job status");
     }
     return await res.json();
+}
+
+// updates text when user edits
+export async function updateDocuments(jobId: number, resumeText: string, coverLetterText: string) {
+  const res = await fetch(`${BASE_URL}/jobs/${jobId}/documents`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ resume_text: resumeText, cover_letter_text: coverLetterText }),
+  });
+  if (!res.ok) throw new Error("Failed to save documents");
+  return res.json();
+}
+
+// checks if the tailoring finished for a job
+export async function getTailorStatus(jobId: number) {
+  const res = await fetch(`${BASE_URL}/job/${jobId}/status`, {
+    method: "GET",
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error("Failed to fetch tailoring status");
+  return await res.json();
 }

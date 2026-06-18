@@ -107,11 +107,11 @@ def scrape(background_tasks: BackgroundTasks, current_user: AuthUser = Depends(g
     background_tasks.add_task(scrape_for_profile, current_user.id)
     return {"status": "scraping started"}
 
-@app.post("/tailor")
-def tailor(background_tasks: BackgroundTasks, current_user: AuthUser = Depends(get_current_user)):
+@app.post("/tailor/{job_id}")
+def tailor(background_tasks: BackgroundTasks, job_id: int, current_user: AuthUser = Depends(get_current_user)):
     if current_user is None or current_user.id is None:
         raise HTTPException(status_code=400, detail="Invalid user")
-    background_tasks.add_task(run_tailor, current_user.id)
+    background_tasks.add_task(run_tailor, current_user.id, job_id)
     return {"status": "tailoring started"}
 
 @app.post("/score")
@@ -187,3 +187,27 @@ def update_reviewed(request: JobReviewed, current_user: AuthUser = Depends(get_c
     if updated == 0:
         raise HTTPException(status_code=404, detail="Failed to update")
     return updated
+
+@app.patch("/jobs/{job_id}/documents")
+def update_documents(job_id: int, request: DocumentUpdateRequest, current_user: AuthUser = Depends(get_current_user)):
+    if not current_user.id:
+        raise HTTPException(status_code=400, detail="Invalid user")
+    update_job_documents(current_user.id, job_id, request.resume_text, request.cover_letter_text)
+    return {"status": "documents saved"}
+
+@app.get("/job/{job_id}/status")
+def get_job_tailor_status(job_id: int, current_user: AuthUser = Depends(get_current_user)):
+    if current_user is None or current_user.id is None:
+        raise HTTPException(status_code=400, detail="Invalid user")
+        
+    job = get_job(job_id, current_user.id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    is_ready = bool(job.get("resume_text") and job.get("cover_letter_text"))
+    
+    return {
+        "ready": is_ready,
+        "resume_text": job.get("resume_text", ""),
+        "cover_letter_text": job.get("cover_letter_text", "")
+    }

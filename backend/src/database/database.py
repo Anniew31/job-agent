@@ -65,6 +65,8 @@ def init_db():
             scraped_at      TIMESTAMP,
             resume_path     TEXT,
             cover_letter_path TEXT,
+            resume_text     TEXT,
+            cover_letter_text TEXT,
             CONSTRAINT unique_job_per_profile UNIQUE(profile_id, source_url)
         )
     """)
@@ -324,14 +326,28 @@ def update_job_score(profile_id, job_id, score, reasoning):
     conn.commit()
     conn.close()
 
-# update to paths of generated resume and cover letter
-def update_job_output(profile_id, job_id, resume_path, cover_letter_path):
+# update to paths of generated resume, cover letter and text
+def update_job_output(profile_id, job_id, resume_path, cover_letter_path, resume_text=None, cover_letter_text=None):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE jobs SET resume_path = %s, cover_letter_path = %s WHERE id = %s AND profile_id = %s",
-        (resume_path, cover_letter_path, job_id, profile_id)
-    )
+    cursor.execute("""
+        UPDATE jobs 
+        SET resume_path = %s, cover_letter_path = %s,
+            resume_text = %s, cover_letter_text = %s
+        WHERE id = %s AND profile_id = %s
+    """, (resume_path, cover_letter_path, resume_text, cover_letter_text, job_id, profile_id))
+    conn.commit()
+    conn.close()
+
+# updates the text for when the user edits
+def update_job_documents(profile_id, job_id, resume_text, cover_letter_text):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE jobs 
+        SET resume_text = %s, cover_letter_text = %s
+        WHERE id = %s AND profile_id = %s
+    """, (resume_text, cover_letter_text, job_id, profile_id))
     conn.commit()
     conn.close()
 
