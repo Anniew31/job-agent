@@ -240,7 +240,7 @@ export async function getReviewData() {
 
 // updates a job's status
 export async function updateJobStatus(data: any) {
-    const res = await fetch(`${BASE_URL}/job/update-reviewed`, {
+    const res = await fetch(`${BASE_URL}/job/update-status`, {
         method: "PATCH",
         headers: {
           ...getAuthHeaders(),
@@ -292,7 +292,7 @@ export async function downloadPdf(jobId: number, tab: "resume" | "cover") {
   a.download = tab === "resume" ? "resume.pdf" : "cover_letter.pdf";
   document.body.appendChild(a);
   a.click();
-  
+
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }

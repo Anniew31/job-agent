@@ -232,7 +232,7 @@ class AuthUser(BaseModel):
     
 class JobReviewed(BaseModel):
     job_id: int
-    accepted: bool
+    status: str
 
 class DocumentUpdateRequest(BaseModel):
     resume_text: str
