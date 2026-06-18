@@ -1,5 +1,10 @@
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+import io
+import traceback
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from src.services.pdf.cover_letter import generate_cover_pdf
+from src.services.pdf.resume import generate_resume_pdf_from_text
 from src.services.scraper.scraper import scrape_for_profile 
 from src.services.tailor.runner import run_tailor
 from src.services.scorer.runner import run_scorer
@@ -211,3 +216,39 @@ def get_job_tailor_status(job_id: int, current_user: AuthUser = Depends(get_curr
         "resume_text": job.get("resume_text", ""),
         "cover_letter_text": job.get("cover_letter_text", "")
     }
+
+@app.get("/jobs/{job_id}/pdf")
+def download_pdf(
+    job_id: int,
+    tab: str = "resume",
+    current_user: AuthUser = Depends(get_current_user)
+):
+    job = get_job(job_id, current_user.id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    profile = get_profile_by_id(current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    if tab == "resume":
+        text = job.get("resume_text")
+        if not text:
+            raise HTTPException(status_code=404, detail="No resume generated yet")
+        pdf_bytes = generate_resume_pdf_from_text(profile, text)
+        filename = f"{job.get('company', 'resume').replace(' ', '_')}_resume.pdf"
+    else:
+        text = job.get("cover_letter_text")
+        if not text:
+            raise HTTPException(status_code=404, detail="No cover letter generated yet")
+        pdf_bytes = generate_cover_pdf(profile, text, job.get("company", ""), job.get("title", ""))
+        filename = f"{job.get('company', 'cover').replace(' ', '_')}_cover_letter.pdf"
+
+    if pdf_bytes is None:
+        raise HTTPException(status_code=500, detail="Failed to generate PDF")
+
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

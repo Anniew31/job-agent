@@ -1,7 +1,6 @@
-from src.database.database import update_job_output
 from src.services.tailor.llm import tailor_resume, write_cover_letter
 from src.services.pdf.renderer import save_output
-from src.database.database import get_profile_by_id, update_job_output, get_job
+from src.database.database import get_profile_by_id, get_job, update_job_documents
 
 # tailors resume and generates cover letter for given job id
 def run_tailor(profile_id: int, job_id: int):
@@ -25,18 +24,29 @@ def run_tailor(profile_id: int, job_id: int):
         print(f"skipping — generation failed")
         return 0
     
-    resume_path, cover_letter_path = save_output(job, tailored_data, tailored_letter, profile)
+    resume_bytes, cover_bytes = save_output(job, tailored_data, tailored_letter, profile)
 
-    resume_text = "\n".join([
-        f"[{exp['identifier']}]\n" + "\n".join([f"• {b}" for b in exp["bullets"]])
-        for exp in tailored_data.get("experiences", [])
+    experiences = tailored_data.get("experiences") or []
+    experience_text = "\n\n".join([
+        f"[{exp['identifier']}]\n" + "\n".join([f"• {b}" for b in exp.get("bullets", []) or []])
+        for exp in experiences
     ])
 
-    update_job_output(
-        profile_id, job["id"],
-        resume_path, cover_letter_path,
+    projects = tailored_data.get("projects") or []
+    project_text = "\n\n".join([
+        f"[{proj['identifier']}]\n" + "\n".join([f"• {b}" for b in proj.get("bullets", []) or []])
+        for proj in projects
+    ])
+
+    resume_text = experience_text + "\n\n" + project_text
+
+    update_job_documents(
+        profile_id,
+        job["id"],
         resume_text=resume_text,
-        cover_letter_text= tailored_letter
+        cover_letter_text=tailored_letter,
+        resume_pdf=resume_bytes,
+        cover_letter_pdf=cover_bytes,
     )
     
     print(f"saved to output/{job['company']}_{job['title']}/")

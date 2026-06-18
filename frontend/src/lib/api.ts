@@ -274,3 +274,25 @@ export async function getTailorStatus(jobId: number) {
   if (!res.ok) throw new Error("Failed to fetch tailoring status");
   return await res.json();
 }
+
+// downloads a PDF for a specific job and tab
+export async function downloadPdf(jobId: number, tab: "resume" | "cover") {
+  const res = await fetch(`${BASE_URL}/jobs/${jobId}/pdf?tab=${tab}`, {
+    method: "GET",
+    headers: getAuthHeaders()
+  });
+
+  if (!res.ok) throw new Error("Failed to download PDF");
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = tab === "resume" ? "resume.pdf" : "cover_letter.pdf";
+  document.body.appendChild(a);
+  a.click();
+  
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

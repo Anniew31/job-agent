@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/src/lib/auth";
-import { getJobs, tailor, updateDocuments, getTailorStatus } from "@/src/lib/api";
+import { getJobs, tailor, updateDocuments, getTailorStatus, downloadPdf } from "@/src/lib/api";
 import { BRAND } from "@/src/lib/theme";
 import Navbar from "@/src/components/NavBar";
 
@@ -29,7 +29,7 @@ export default function TailorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [savingMessage, setIsSavingMessage] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const job = jobs[jobIndex] ?? null;
 
@@ -105,7 +105,7 @@ export default function TailorPage() {
       setGenerated(true);
     } catch (error) {
       console.error(error);
-      alert("Generation failed or timed out — please try again");
+      setErrorMessage({ message: "Failed to generate. Please try again", type: "error" });
     } finally {
       setIsGenerating(false);
     }
@@ -123,11 +123,11 @@ export default function TailorPage() {
             : j
         )
       );
-      setIsSavingMessage({ message: "Changes saved successfully! 🎉", type: "success" });
-      setTimeout(() => setIsSavingMessage(null), 3000);
+      setErrorMessage({ message: "Changes saved successfully! 🎉", type: "success" });
+      setTimeout(() => setErrorMessage(null), 3000);
     } catch (error) {
-      setIsSavingMessage({ message: "Failed to save changes. Please try again.", type: "error" });
-      setTimeout(() => setIsSavingMessage(null), 4000);
+      setErrorMessage({ message: "Failed to save changes. Please try again.", type: "error" });
+      setTimeout(() => setErrorMessage(null), 4000);
     } finally {
       setIsSaving(false);
     }
@@ -164,7 +164,7 @@ export default function TailorPage() {
           </p>
         </div>
 
-        {savingMessage && (
+        {errorMessage && (
           <div style={{
             marginBottom: "1.5rem",
             padding: "0.875rem 1.25rem",
@@ -174,14 +174,14 @@ export default function TailorPage() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: savingMessage.type === "success" ? BRAND.greenBg : "#FDF2F2", // Fallback light red if color missing
-            color: savingMessage.type === "success" ? BRAND.green : BRAND.red,
-            border: `1px solid ${savingMessage.type === "success" ? BRAND.green : BRAND.red}`,
+            background: errorMessage.type === "success" ? BRAND.greenBg : "#FDF2F2", // Fallback light red if color missing
+            color: errorMessage.type === "success" ? BRAND.green : BRAND.red,
+            border: `1px solid ${errorMessage.type === "success" ? BRAND.green : BRAND.red}`,
             boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
             transition: "all 0.3s ease"
           }}>
-            <span>{savingMessage.type === "success" ? "✓" : "⚠️"}</span>
-            <span>{savingMessage.message}</span>
+            <span>{errorMessage.type === "success" ? "✓" : "⚠️"}</span>
+            <span>{errorMessage.message}</span>
           </div>
         )}
 
@@ -346,10 +346,21 @@ export default function TailorPage() {
                         fontFamily: "system-ui, sans-serif"
                       }}
                     >
-                      {isSaving ? "⏳ Saving..." : "💾 Save Changes"}
+                      {isSaving ? "⏳ Saving..." : "Save Changes"}
                     </button>
-                    <button style={{ padding: "0.4rem 0.875rem", borderRadius: "6px", border: "none", background: BRAND.navy, color: "#fff", fontSize: "0.78rem", fontWeight: 500, cursor: "pointer", fontFamily: "system-ui, sans-serif" }}>
-                      📥 Download PDF
+                    <button onClick={() => downloadPdf(job.id, activeTab)}
+                      style={{ 
+                        padding: "0.4rem 0.875rem", 
+                        borderRadius: "6px", 
+                        border: "none", 
+                        background: BRAND.navy, 
+                        color: "#fff", 
+                        fontSize: "0.78rem", 
+                        fontWeight: 500, 
+                        cursor: "pointer", 
+                        fontFamily: "system-ui, sans-serif" 
+                    }}>
+                      Download PDF
                     </button>
                   </div>
                 )}

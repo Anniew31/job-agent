@@ -52,7 +52,7 @@ def tailor_resume(profile: Profile, job: dict) -> dict | None:
     - Do NOT change the core facts — only reframe how they are described
     - Use strong action verbs
     - Keep each bullet concise, one sentence
-    - Return 2 to 3 bullets for each experience
+    - Return 2 to 3 bullets for each experience and project
     - Prioritize bullets most relevant to this specific job
     - Make sure that total output is about 15 bullets
 

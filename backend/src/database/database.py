@@ -63,8 +63,8 @@ def init_db():
             score_reasoning TEXT,
             source_url      TEXT NOT NULL,
             scraped_at      TIMESTAMP,
-            resume_path     TEXT,
-            cover_letter_path TEXT,
+            resume_pdf      BYTEA,
+            cover_letter_pdf BYTEA,
             resume_text     TEXT,
             cover_letter_text TEXT,
             CONSTRAINT unique_job_per_profile UNIQUE(profile_id, source_url)
@@ -304,7 +304,12 @@ def insert_job(profile_id, title, company, location, job_type, job_min_salary, j
 def fetch_jobs_by_status(profile_id, status):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM jobs WHERE status = %s AND profile_id = %s", (status,profile_id,))
+    cursor.execute("""
+        SELECT id, title, company, location, job_type, job_min_salary, job_max_salary,
+               benefits, description, status, score, score_reasoning, source_url,
+               scraped_at, profile_id, resume_text, cover_letter_text
+        FROM jobs WHERE status = %s AND profile_id = %s
+    """, (status, profile_id))
     rows = cursor.fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -326,28 +331,16 @@ def update_job_score(profile_id, job_id, score, reasoning):
     conn.commit()
     conn.close()
 
-# update to paths of generated resume, cover letter and text
-def update_job_output(profile_id, job_id, resume_path, cover_letter_path, resume_text=None, cover_letter_text=None):
+# updates the text and pdf when user edits
+def update_job_documents(profile_id, job_id, resume_text, cover_letter_text, resume_pdf=None, cover_letter_pdf=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE jobs 
-        SET resume_path = %s, cover_letter_path = %s,
-            resume_text = %s, cover_letter_text = %s
+        SET resume_text = %s, cover_letter_text = %s,
+            resume_pdf = %s, cover_letter_pdf = %s
         WHERE id = %s AND profile_id = %s
-    """, (resume_path, cover_letter_path, resume_text, cover_letter_text, job_id, profile_id))
-    conn.commit()
-    conn.close()
-
-# updates the text for when the user edits
-def update_job_documents(profile_id, job_id, resume_text, cover_letter_text):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE jobs 
-        SET resume_text = %s, cover_letter_text = %s
-        WHERE id = %s AND profile_id = %s
-    """, (resume_text, cover_letter_text, job_id, profile_id))
+    """, (resume_text, cover_letter_text, resume_pdf, cover_letter_pdf, job_id, profile_id))
     conn.commit()
     conn.close()
 

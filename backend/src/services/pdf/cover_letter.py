@@ -4,9 +4,8 @@ from jinja2 import Environment, FileSystemLoader
 from src.models import Profile
 
 # generates the pdf of the cover letter
-def generate_cover_pdf(profile: Profile, tailored_letter: str, output_path: str, company: str, role: str):
+def generate_cover_pdf(profile: Profile, tailored_letter: str, company: str, role: str):
 
-    # load and render template
     env = Environment(loader=FileSystemLoader("src/templates"))
     template = env.get_template("cover_letter.html")
 
@@ -20,5 +19,4 @@ def generate_cover_pdf(profile: Profile, tailored_letter: str, output_path: str,
         cover_letter_body = tailored_letter
     )
 
-    # convert rendered HTML to PDF
-    HTML(string=html_str).write_pdf(output_path)
+    return HTML(string=html_str).write_pdf()
