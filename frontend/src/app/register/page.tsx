@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { register } from "@/src/lib/api";
+import { register, login } from "@/src/lib/api";
 import { BRAND } from "@/src/lib/theme";
 
 export default function RegisterPage() {
@@ -23,6 +23,8 @@ export default function RegisterPage() {
         try {
             setLoading(true);
             await register(email, password);
+            const loginRes = await login(email, password);
+            localStorage.setItem("token", loginRes.access_token);
             window.location.href = "/create-profile"; 
         } catch (err: any) {
             setError(err.message || "Registration failed");

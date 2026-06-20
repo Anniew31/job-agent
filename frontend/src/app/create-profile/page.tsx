@@ -124,8 +124,13 @@ function StepBasic({ data, set }: { data: any; set: (d: any) => void }) {
 }
 
 function StepProfessional({ data, set }: { data: any; set: (d: any) => void }) {
-    const skillCategories = ["Languages", "Frameworks/Libraries", "Developer Tools", "Other"];
     const websites: any[] = data.websites || [];
+    
+    const skills = data.skills && Object.keys(data.skills).length > 0 
+        ? data.skills 
+        : { "Category 1": [] };
+
+    const categories = Object.keys(skills);
 
     const updateWebsite = (i: number, key: string, val: string) => {
         const updated = [...websites];
@@ -133,10 +138,65 @@ function StepProfessional({ data, set }: { data: any; set: (d: any) => void }) {
         set({ ...data, websites: updated });
     };
 
-    const updateSkill = (cat: string, val: string) => {
-        const skills = { ...(data.skills || {}) };
-        skills[cat] = val.split(",").map((s: string) => s.trim()).filter(Boolean);
-        set({ ...data, skills });
+    const handleSkillValueChange = (cat: string, value: string) => {
+        const rawSkillsStrings = { ...(data.raw_skills_strings || {}) };
+        rawSkillsStrings[cat] = value;
+        set({ ...data, raw_skills_strings: rawSkillsStrings });
+    };
+
+    const handleSkillValueBlur = (cat: string) => {
+        const currentString = (data.raw_skills_strings || {})[cat] || "";
+        const cleanArray = currentString.split(",").map((s: string) => s.trim()).filter(Boolean);
+        
+        const updatedSkills = { ...skills };
+        updatedSkills[cat] = cleanArray;
+        set({ ...data, skills: updatedSkills });
+    };
+
+    const handleCategoryNameChange = (oldName: string, newName: string) => {
+        if (!newName.trim() || oldName === newName) return;
+
+        const updatedSkills: any = {};
+        const updatedRawStrings: any = {};
+
+        Object.keys(skills).forEach(cat => {
+            const currentKey = cat === oldName ? newName : cat;
+            updatedSkills[currentKey] = skills[cat];
+            if (data.raw_skills_strings?.[cat] !== undefined) {
+                updatedRawStrings[currentKey] = data.raw_skills_strings[cat];
+            }
+        });
+
+        set({ 
+            ...data, 
+            skills: updatedSkills,
+            raw_skills_strings: updatedRawStrings
+        });
+    };
+
+    const addCategory = () => {
+        if (categories.length >= 4) return;
+        const nextNum = categories.length + 1;
+        set({
+            ...data,
+            skills: { ...skills, [`Category ${nextNum}`]: [] }
+        });
+    };
+
+    const removeCategory = (catToDelete: string) => {
+        if (categories.length <= 1) return;
+        
+        const updatedSkills = { ...skills };
+        delete updatedSkills[catToDelete];
+
+        const updatedRawStrings = { ...(data.raw_skills_strings || {}) };
+        delete updatedRawStrings[catToDelete];
+
+        set({
+            ...data,
+            skills: updatedSkills,
+            raw_skills_strings: updatedRawStrings
+        });
     };
 
     return (
@@ -146,7 +206,7 @@ function StepProfessional({ data, set }: { data: any; set: (d: any) => void }) {
             <p style={{ fontSize: "0.72rem", color: BRAND.muted, margin: "0 0 1rem" }}>2 sentences that is used to write cover letters</p>
             <textarea
                 style={{ ...inp(), resize: "vertical", minHeight: 80 }}
-                placeholder="I am a Cornell CS student with hands-on experience building production systems..."
+                placeholder="I am a professional with hands-on experience..."
                 value={data.positioning || ""}
                 onChange={e => set({ ...data, positioning: e.target.value })}
             />
@@ -161,22 +221,48 @@ function StepProfessional({ data, set }: { data: any; set: (d: any) => void }) {
                     <button style={removeBtn} onClick={() => set({ ...data, websites: websites.filter((_: any, j: number) => j !== i) })}>✕</button>
                 </div>
             ))}
-        <button style={addBtn} onClick={() => set({ ...data, websites: [...websites, { label: "", url: "" }] })}>+ Add website</button>
+            <button style={addBtn} onClick={() => set({ ...data, websites: [...websites, { label: "", url: "" }] })}>+ Add website</button>
         </div>
 
         <div>
-            <p style={lbl}>Skills by category</p>
-            {skillCategories.map(cat => (
-                <div key={cat} style={{ marginBottom: "0.75rem", marginTop: "1rem"}}>
-                    <p style={{ fontSize: "0.7rem", color: BRAND.faint, margin: "0 0 0.25rem", fontWeight: 600 }}>{cat}</p>
-                    <input
-                        style={inp()}
-                        placeholder={cat === "Languages" ? "Python, Java, TypeScript" : cat === "Frameworks/Libraries" ? "React, FastAPI, Pandas" : cat === "Developer Tools" ? "Git, Docker, VS Code" : "Figma, LaTeX, AutoCAD"}
-                        value={((data.skills || {})[cat] || []).join(", ")}
-                        onChange={e => updateSkill(cat, e.target.value)}
-                    />
-                </div>
-            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <p style={lbl}>Skills by category ({categories.length}/4)</p>
+                {categories.length < 4 && (
+                    <button onClick={addCategory} style={{ ...addBtn, width: "auto", margin: 0, padding: "0.25rem 0.5rem" }}>+ Add Category</button>
+                )}
+            </div>
+            
+            {categories.map((cat) => {
+                const displayValue = data.raw_skills_strings?.[cat] !== undefined 
+                    ? data.raw_skills_strings[cat] 
+                    : (skills[cat] || []).join(", ");
+
+                return (
+                    <div key={cat} style={{ 
+                        background: BRAND.bg, padding: "1rem", borderRadius: "8px", 
+                        border: `1px solid ${BRAND.borderLight}`, marginBottom: "1rem" 
+                    }}>
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                            <input
+                                style={{ ...inp(), fontWeight: 600, background: BRAND.surface }}
+                                defaultValue={cat}
+                                placeholder="Category Name (e.g. Languages)"
+                                onBlur={(e) => handleCategoryNameChange(cat, e.target.value)}
+                            />
+                            {categories.length > 1 && (
+                                <button style={removeBtn} onClick={() => removeCategory(cat)}>✕</button>
+                            )}
+                        </div>
+                        <input
+                            style={inp()}
+                            placeholder="Skill 1, Skill 2, Skill 3"
+                            value={displayValue}
+                            onChange={e => handleSkillValueChange(cat, e.target.value)}
+                            onBlur={() => handleSkillValueBlur(cat)}
+                        />
+                    </div>
+                );
+            })}
         </div>
     </>
     );
