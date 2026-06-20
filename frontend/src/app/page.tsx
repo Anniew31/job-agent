@@ -1,6 +1,10 @@
+"use client"
+
 import Link from "next/link";
 import { BRAND } from "../lib/theme";
 import DashboardMetrics from "../components/DashboardMetrics";
+import { useState } from "react";
+import { demoLogin } from "../lib/api";
 
 export default function Home() {
   const mockMarketingData = [
@@ -9,6 +13,21 @@ export default function Home() {
     { title: "SWE Intern", company: "Linear", score: 7, status: "scraped" },
     { title: "Product Eng Intern", company: "Figma", score: 5, status: "rejected" },
   ];
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleQuickDemo() {
+    setLoading(true);
+    setError("");
+    try {
+        await demoLogin();
+        window.location.href = "/dashboard";
+    } catch (err: any) {
+        setError(err.message);
+        setLoading(false);
+    }
+  }
   
   return (
     <main style={{ minHeight: "100vh", background: BRAND.bg, fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -34,6 +53,12 @@ export default function Home() {
           }}>get started</Link>
         </div>
       </nav>
+
+      {error && (
+        <div style={{ background: BRAND.redBg, color: BRAND.red, padding: "0.75rem", textAlign: "center", fontSize: "0.85rem", fontWeight: 500, borderBottom: `1px solid #F5C4C4` }}>
+          {error}
+        </div>
+      )}
 
       <section style={{ maxWidth: "700px", margin: "0 auto", padding: "5.5rem 2rem 3.5rem", textAlign: "center" }}>
         <div style={{
@@ -71,13 +96,20 @@ export default function Home() {
           }}>
             start now →
           </Link>
-          <Link href="/demo" style={{
-            fontSize: "0.9375rem", color: BRAND.navyMid, background: BRAND.surface,
-            textDecoration: "none", padding: "0.8rem 2.25rem",
-            borderRadius: "10px", border: `1px solid ${BRAND.border}`, fontWeight: 500,
-          }}>
-            see a demo
-          </Link>
+          <button 
+            onClick={handleQuickDemo}
+            disabled={loading}
+            style={{
+              fontSize: "0.9375rem", color: BRAND.navyMid, background: BRAND.surface,
+              padding: "0.8rem 2.25rem", borderRadius: "10px", 
+              border: `1px solid ${BRAND.border}`, fontWeight: 500,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+              transition: "all 0.2s ease"
+            }}
+          >
+            {loading ? "Loading..." : "see a demo"}
+          </button>
         </div>
       </section>
 

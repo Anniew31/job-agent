@@ -66,7 +66,7 @@ export default function ReviewMatchesPage() {
             const [updateRes, reviewRes] = await Promise.all([
                 updateJobStatus({
                     job_id: targetJobId,
-                    accepted: accepted
+                    status: accepted ? "accepted" : "rejected"
                 }),
                 getReviewData()
             ]);

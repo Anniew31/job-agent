@@ -14,6 +14,7 @@ export default function Navbar({ firstName }: NavbarProps) {
     const [hoveredLink, setHoveredLink] = useState<string | null>(null);
 
     const navLinks = [
+        { name: "Dashboard", href: "/dashboard" },
         { name: "Find Jobs", href: "/find" },
         { name: "Score Matches", href: "/score" },
         { name: "Review Matches", href: "/review" },

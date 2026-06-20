@@ -36,7 +36,7 @@ export default function FindingJobsPage() {
                 const [profileRes, analyticsRes,jobsRes, metricsRes] = await Promise.all([
                     getProfile(),      
                     getFinderAnalytics(),
-                    getJobs("pending"),
+                    getJobs(),
                     getMetrics() 
                 ]);
 
@@ -112,13 +112,15 @@ export default function FindingJobsPage() {
             setIsFinding(true);
             await scrape();
             setTimeout(async () => {
-                const [jobsRes, metricsRes] = await Promise.all([
+                const [jobsRes, metricsRes, analyticsRes] = await Promise.all([
                     getJobs(),
-                    getMetrics()
+                    getMetrics(),
+                    getFinderAnalytics(),
                 ]);
                 setRecentJobs(jobsRes || []);
                 setMetrics(metricsRes);
                 setIsFinding(false);
+                setChartData(analyticsRes || []);
             }, 2000);
         } catch (err) {
             setIsFinding(false);

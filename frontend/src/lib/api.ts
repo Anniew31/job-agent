@@ -1,6 +1,6 @@
 const BASE_URL = "http://localhost:8000";
 
-// sends request to login in
+// sends request to login in for standard users
 export async function login(email: string, password: string) {
     const formData = new URLSearchParams();
     formData.append("username", email);
@@ -22,6 +22,47 @@ export async function login(email: string, password: string) {
 
     localStorage.setItem("token", data.access_token);
 
+    return data;
+}
+
+// Standard user login
+export async function demoLogin() {
+    const formData = new URLSearchParams();
+    formData.append("username", "demo@jobagent.com");
+    formData.append("password", "DemoPass123");
+
+    const res = await fetch(`${BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData,
+    });
+
+    if (!res.ok) throw new Error("Login failed");
+
+    const data = await res.json();
+    localStorage.setItem("token", data.access_token);
+    return data;
+}
+
+// logins into the demo account
+export async function loginAsDemo() {
+    const formData = new URLSearchParams();
+    formData.append("username", "demo@jobagent.com");
+    formData.append("password", "DemoPass123");
+
+    const res = await fetch(`${BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Demo-Bypass": "true", 
+        },
+        body: formData,
+    });
+
+    if (!res.ok) throw new Error("Demo is not working");
+
+    const data = await res.json();
+    localStorage.setItem("token", data.access_token);
     return data;
 }
 
