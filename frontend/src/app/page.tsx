@@ -111,6 +111,9 @@ export default function Home() {
             {loading ? "Loading..." : "see a demo"}
           </button>
         </div>
+        <small style={{ color: BRAND.muted, display: "block", marginTop: "1rem" }}>
+          *recruiters, please click "see a demo"
+        </small>
       </section>
 
       <section style={{
