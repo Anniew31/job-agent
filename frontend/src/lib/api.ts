@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "https://job-agent-fmou.onrender.com";
 
 // sends request to login in for standard users
 export async function login(email: string, password: string) {
