@@ -2,7 +2,7 @@ Job Agent
 
 An AI-powered job application assistant that scrapes listings, scores them against your profile, lets you review matches by swiping through them, and generates a tailored resume and cover letter for every job you accept.
 
-Live demo → (link coming soon)
+Live demo → https://job-agent-pipeline.vercel.app/
 
 
 What it does
@@ -35,12 +35,10 @@ Client-side state management with React hooks
 
 Architecture
 
-Scrape → Score → Review (swipe) → Tailor → Track
-  │         │           │              │        │
-  │         │           │              │        └─ Applications dashboard
-  │         │           │              └─ AI resume + cover letter generation
-  │         │           └─ Accept/reject UI, updates job status
-  │         └─ LLM scores job fit, auto-rejects below threshold
-  └─ JSearch API pulls listings per target role
+Scrape (JSearch API pulls listings per target role) → 
+Score (LLM scores job fit, auto-rejects below threshold) →
+Review (Accept/reject UI, updates job status) → 
+Tailor (AI resume + cover letter generation )→ 
+Track (Applications dashboard)
 
 Every stage is its own page and its own API endpoint, backed by a jobs table that tracks status through the full pipeline: pending → reviewed → accepted → tailored → applied, with rejected and ghosted as terminal states.
